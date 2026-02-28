@@ -59,10 +59,20 @@ export const api = {
 
   async updateInventory(productId: string, stock: number) {
     const headers = await getAuthHeaders()
-    const res = await fetch(`${getFunctionUrl('admin-inventory')}/${productId}`, {
+    // Uses the api-admin function: POST /api-admin/inventory/{productId}
+    const res = await fetch(`${getFunctionUrl('api-admin')}/inventory/${productId}`, {
       method: 'POST',
       headers,
       body: JSON.stringify({ stock }),
+    })
+    return { ok: res.ok, data: await res.json() }
+  },
+
+  async seedData() {
+    const headers = await getAuthHeaders()
+    const res = await fetch(`${getFunctionUrl('api-admin')}/seed`, {
+      method: 'POST',
+      headers,
     })
     return { ok: res.ok, data: await res.json() }
   },
