@@ -32,14 +32,10 @@ export function LoginPage() {
   }
 
   const handleGoogleLogin = async () => {
-    setLoading(true)
     setError(null)
-
     const { error } = await signInWithGoogle()
-
     if (error) {
       setError(error.message)
-      setLoading(false)
     }
   }
 
@@ -111,7 +107,6 @@ export function LoginPage() {
             variant="outline"
             className="w-full"
             size="lg"
-            disabled={loading}
             onClick={handleGoogleLogin}
           >
             <img src="https://www.google.com/favicon.ico" className="w-4 h-4 mr-2" alt="Google" />
