@@ -24,10 +24,11 @@ export function LoginPage() {
     if (error) {
       setError(error.message)
       setLoading(false)
-    } else {
-      toast.success('Welcome back!')
-      navigate({ to: '/' })
+      return
     }
+
+    toast.success('Welcome back!')
+    navigate({ to: '/' })
   }
 
   const handleGoogleLogin = async () => {
@@ -88,9 +89,7 @@ export function LoginPage() {
             </div>
 
             {error && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
-                {error}
-              </div>
+              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">{error}</div>
             )}
 
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
