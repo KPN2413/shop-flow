@@ -14,5 +14,16 @@ export default defineConfig({
     strictPort: true,
     host: true,
     allowedHosts: true,
+  },
+  build: {
+  rollupOptions: {
+    output: {
+      manualChunks: {
+        vendor: ['react', 'react-dom'],
+        router: ['@tanstack/react-router'],
+        query: ['@tanstack/react-query'],
+      }
+    }
   }
+}
 });
