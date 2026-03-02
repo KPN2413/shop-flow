@@ -20,12 +20,25 @@ export function LoginPage() {
     setError(null)
 
     const { error } = await signIn(email, password)
+
     if (error) {
       setError(error.message)
       setLoading(false)
     } else {
       toast.success('Welcome back!')
       navigate({ to: '/' })
+    }
+  }
+
+  const handleGoogleLogin = async () => {
+    setLoading(true)
+    setError(null)
+
+    const { error } = await signInWithGoogle()
+
+    if (error) {
+      setError(error.message)
+      setLoading(false)
     }
   }
 
@@ -37,8 +50,11 @@ export function LoginPage() {
             <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
               <Package className="w-5 h-5 text-primary-foreground" />
             </div>
-            <span className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>ShopFlow</span>
+            <span className="text-2xl font-bold" style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+              ShopFlow
+            </span>
           </Link>
+
           <h1 className="text-2xl font-bold">Welcome back</h1>
           <p className="text-muted-foreground mt-1">Sign in to your account</p>
         </div>
@@ -52,11 +68,12 @@ export function LoginPage() {
                 type="email"
                 placeholder="you@example.com"
                 value={email}
-                onChange={e => setEmail(e.target.value)}
+                onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
               />
             </div>
+
             <div className="space-y-1.5">
               <Label htmlFor="password">Password</Label>
               <Input
@@ -64,14 +81,16 @@ export function LoginPage() {
                 type="password"
                 placeholder="Your password"
                 value={password}
-                onChange={e => setPassword(e.target.value)}
+                onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="current-password"
               />
             </div>
 
             {error && (
-              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">{error}</div>
+              <div className="p-3 bg-destructive/10 text-destructive rounded-lg text-sm">
+                {error}
+              </div>
             )}
 
             <Button type="submit" className="w-full" size="lg" disabled={loading}>
@@ -80,28 +99,31 @@ export function LoginPage() {
           </form>
 
           <div className="relative my-4">
-  <div className="absolute inset-0 flex items-center">
-    <span className="w-full border-t" />
-  </div>
-  <div className="relative flex justify-center text-xs uppercase">
-    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-  </div>
-</div>
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
 
-<Button
-  type="button"
-  variant="outline"
-  className="w-full"
-  size="lg"
-  onClick={() => signInWithGoogle()}
->
-  <img src="https://www.google.com/favicon.ico" className="w-4 h-4 mr-2" />
-  Continue with Google
-</Button>
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            size="lg"
+            disabled={loading}
+            onClick={handleGoogleLogin}
+          >
+            <img src="https://www.google.com/favicon.ico" className="w-4 h-4 mr-2" alt="Google" />
+            Continue with Google
+          </Button>
 
           <p className="text-sm text-center text-muted-foreground mt-4">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-primary font-medium hover:underline">Sign up</Link>
+            Don&apos;t have an account?{' '}
+            <Link to="/signup" className="text-primary font-medium hover:underline">
+              Sign up
+            </Link>
           </p>
         </div>
       </div>
