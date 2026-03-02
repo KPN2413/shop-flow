@@ -21,7 +21,7 @@ export function Navbar() {
 
   async function handleSignOut() {
     await signOut()
-    navigate({ to: '/' })
+    // navigate({ to: '/' })
   }
 
   return (

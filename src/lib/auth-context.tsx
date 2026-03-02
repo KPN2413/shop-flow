@@ -42,11 +42,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }
 
   async function signOut() {
-    await supabase.auth.signOut()
-    setUser(null)
-    setSession(null)
-    setProfile(null)
-  }
+  await supabase.auth.signOut()
+  setUser(null)
+  setSession(null)
+  setProfile(null)
+  window.location.href = '/login'
+}
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
