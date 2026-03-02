@@ -35,6 +35,8 @@ import { AdminCategories } from './pages/admin/AdminCategories'
 import { AdminInventory } from './pages/admin/AdminInventory'
 import { AdminOrders } from './pages/admin/AdminOrders'
 
+import { Analytics } from '@vercel/analytics/react';
+
 // Root layout with Navbar + Footer
 function StoreLayout() {
   return (
@@ -206,6 +208,7 @@ export default function App() {
     <AuthProvider>
       <CartProvider>
         <RouterProvider router={router} />
+        <Analytics />
       </CartProvider>
     </AuthProvider>
   )
