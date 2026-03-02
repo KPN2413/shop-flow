@@ -243,10 +243,10 @@ export function AdminProducts() {
             </div>
             <div className="space-y-1.5">
               <Label>Category</Label>
-              <Select value={form.category_id} onValueChange={v => setForm(prev => ({ ...prev, category_id: v }))}>
+              <Select value={form.category_id || 'none'} onValueChange={v => setForm(prev => ({ ...prev, category_id: v === 'none' ? '' : v }))}>
                 <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No category</SelectItem>
+                  <SelectItem value="none">No category</SelectItem>
                   {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
                 </SelectContent>
               </Select>
