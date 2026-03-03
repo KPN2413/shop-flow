@@ -39,36 +39,15 @@ export function AdminInventory() {
     }
 
     setSaving(prev => ({ ...prev, [productId]: true }))
-    const { data: { session } } = await supabase.auth.getSession()
-
-    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-    try {
-      const res = await window.fetch(`${supabaseUrl}/functions/v1/api-admin/inventory/${productId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session?.access_token}` },
-        body: JSON.stringify({ stock: newStock }),
-      })
-
-      if (res.ok) {
-        toast.success('Stock updated!')
-        setEdits(prev => { const n = { ...prev }; delete n[productId]; return n })
-        fetchInventory()
-      } else {
-        const r = await res.json()
-        toast.error(r.error || 'Failed to update stock')
-      }
-    } catch {
-      // Fallback: direct Supabase update (works if user is admin by RLS)
-      const { error } = await supabase
-        .from('inventory')
-        .upsert({ product_id: productId, stock: newStock, updated_at: new Date().toISOString() }, { onConflict: 'product_id' })
-      if (error) {
-        toast.error(error.message)
-      } else {
-        toast.success('Stock updated!')
-        setEdits(prev => { const n = { ...prev }; delete n[productId]; return n })
-        fetchInventory()
-      }
+    const { error } = await supabase
+      .from('inventory')
+      .upsert({ product_id: productId, stock: newStock, updated_at: new Date().toISOString() }, { onConflict: 'product_id' })
+    if (error) {
+      toast.error(error.message)
+    } else {
+      toast.success('Stock updated!')
+      setEdits(prev => { const n = { ...prev }; delete n[productId]; return n })
+      fetchInventory()
     }
     setSaving(prev => ({ ...prev, [productId]: false }))
   }

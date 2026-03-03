@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { User, Phone, Mail, Save, LogOut } from 'lucide-react'
 import { Button } from '../../components/ui/button'
@@ -7,15 +7,22 @@ import { Label } from '../../components/ui/label'
 import { Badge } from '../../components/ui/badge'
 import { useAuth } from '../../hooks/useAuth'
 import { supabase } from '../../lib/supabase'
-import { signOut } from '../../lib/auth'
 import { formatDate } from '../../lib/format'
 import toast from 'react-hot-toast'
 
 export function AccountPage() {
-  const { user, profile, isLoading: loading } = useAuth()
+  const { user, profile, isLoading: loading, signOut } = useAuth()
   const navigate = useNavigate()
-  const [fullName, setFullName] = useState(profile?.full_name || '')
-  const [phone, setPhone] = useState(profile?.phone || '')
+  const [fullName, setFullName] = useState('')
+  const [phone, setPhone] = useState('')
+
+  const [saving, setSaving] = useState(false)
+
+  // Sync form fields when profile loads (it may arrive async after mount)
+  useEffect(() => {
+    setFullName(profile?.full_name || '')
+    setPhone(profile?.phone || '')
+  }, [profile])
   const [saving, setSaving] = useState(false)
 
   if (loading) return (
@@ -47,8 +54,7 @@ export function AccountPage() {
 
   const handleSignOut = async () => {
     await signOut()
-    toast.success('Signed out')
-    navigate({ to: '/' })
+    // auth-context signOut redirects to /login automatically
   }
 
   return (

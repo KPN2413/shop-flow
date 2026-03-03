@@ -10,7 +10,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '
 import { Textarea } from '../../components/ui/textarea'
 import { formatINR, paiseToRupees, rupeesToPaise, slugify } from '../../lib/format'
 import { supabase } from '../../lib/supabase'
-import { api } from '../../lib/api'
 import type { Product, Category } from '../../lib/database.types'
 import toast from 'react-hot-toast'
 
@@ -96,21 +95,24 @@ export function AdminProducts() {
       visibility: form.visibility,
       category_id: form.category_id || null,
       image_url: form.image_url || null,
+      updated_at: new Date().toISOString(),
     }
 
     try {
-      let result
       if (editingProduct) {
-        result = await api.updateProduct(editingProduct.id, payload)
+        const { error } = await supabase.from('products').update(payload).eq('id', editingProduct.id)
+        if (error) { toast.error(error.message) }
+        else { toast.success('Product updated!'); setDialogOpen(false); fetchProducts() }
       } else {
-        result = await api.createProduct(payload)
-      }
-      if (!result.ok) {
-        toast.error(result.data?.error || 'Failed to save product')
-      } else {
-        toast.success(editingProduct ? 'Product updated!' : 'Product created!')
-        setDialogOpen(false)
-        fetchProducts()
+        const { data, error } = await supabase.from('products').insert(payload).select('id').single()
+        if (error) { toast.error(error.message) }
+        else {
+          // Create inventory row for new product
+          await supabase.from('inventory').insert({ product_id: data.id, stock: 0 })
+          toast.success('Product created!')
+          setDialogOpen(false)
+          fetchProducts()
+        }
       }
     } catch {
       toast.error('Something went wrong')
@@ -120,13 +122,9 @@ export function AdminProducts() {
 
   const handleArchive = async (product: Product) => {
     if (!confirm(`Archive "${product.title}"? It will be hidden from the store.`)) return
-    const result = await api.updateProduct(product.id, { status: 'ARCHIVED' })
-    if (result.ok) {
-      toast.success('Product archived')
-      fetchProducts()
-    } else {
-      toast.error(result.data?.error || 'Failed to archive')
-    }
+    const { error } = await supabase.from('products').update({ status: 'ARCHIVED', updated_at: new Date().toISOString() }).eq('id', product.id)
+    if (error) { toast.error(error.message) }
+    else { toast.success('Product archived'); fetchProducts() }
   }
 
   const statusBadge = (status: string) => {

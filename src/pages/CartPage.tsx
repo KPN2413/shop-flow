@@ -60,7 +60,7 @@ export function CartPage() {
     )
   }
 
-  const deliveryFee = totalPaise >= 49900 ? 0 : 4900
+  const deliveryFee = totalPaise >= 49900 ? 0 : 4900  // free delivery at ₹499+
   const grandTotal = totalPaise + deliveryFee
 
   return (
@@ -160,7 +160,7 @@ export function CartPage() {
                   {deliveryFee === 0 ? 'FREE' : formatINR(deliveryFee)}
                 </span>
               </div>
-              {deliveryFee > 0 && (
+                {deliveryFee > 0 && (
                 <p className="text-xs text-muted-foreground">
                   Add {formatINR(49900 - totalPaise)} more for free delivery
                 </p>

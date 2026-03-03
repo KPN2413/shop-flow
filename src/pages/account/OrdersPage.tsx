@@ -30,7 +30,8 @@ export function OrdersPage() {
   }, [user, loading, navigate])
 
   useEffect(() => {
-    if (!user) return
+    if (loading) return
+    if (!user) { setOrdersLoading(false); return }
     supabase
       .from('orders')
       .select('*')
@@ -40,7 +41,7 @@ export function OrdersPage() {
         setOrders((data as Order[]) || [])
         setOrdersLoading(false)
       })
-  }, [user])
+  }, [user, loading])
 
   const openOrder = async (order: Order) => {
     const { data } = await supabase
