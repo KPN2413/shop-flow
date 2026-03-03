@@ -1,0 +1,24 @@
+From dffe63798740dceec75582849ff12d93521a2375 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Tue, 3 Mar 2026 20:35:00 +0000
+Subject: [PATCH] fix: remove duplicate saving state declaration in AccountPage
+
+---
+ src/pages/account/AccountPage.tsx | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/src/pages/account/AccountPage.tsx b/src/pages/account/AccountPage.tsx
+index 3b2b277..30a46e5 100644
+--- a/src/pages/account/AccountPage.tsx
++++ b/src/pages/account/AccountPage.tsx
+@@ -23,7 +23,6 @@ export function AccountPage() {
+     setFullName(profile?.full_name || '')
+     setPhone(profile?.phone || '')
+   }, [profile])
+-  const [saving, setSaving] = useState(false)
+ 
+   if (loading) return (
+     <div className="max-w-2xl mx-auto px-4 py-8 animate-pulse space-y-4">
+-- 
+2.43.0
+

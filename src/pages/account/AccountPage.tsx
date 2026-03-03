@@ -23,7 +23,6 @@ export function AccountPage() {
     setFullName(profile?.full_name || '')
     setPhone(profile?.phone || '')
   }, [profile])
-  const [saving, setSaving] = useState(false)
 
   if (loading) return (
     <div className="max-w-2xl mx-auto px-4 py-8 animate-pulse space-y-4">
