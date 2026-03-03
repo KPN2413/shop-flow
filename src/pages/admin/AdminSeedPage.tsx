@@ -26,46 +26,46 @@ const SEED_CATEGORIES = [
 
 const SEED_BATCHES = [
   [
-    { title: 'Wireless Bluetooth Earbuds', price: 199900, cat: 'electronics', image: 'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=400', desc: 'Premium wireless earbuds with 30hr battery life and active noise cancellation.' },
-    { title: 'Smartwatch Pro', price: 349900, cat: 'electronics', image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400', desc: 'Feature-packed smartwatch with health tracking, GPS, and 7-day battery.' },
-    { title: 'USB-C Fast Charger 65W', price: 149900, cat: 'electronics', image: 'https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400', desc: 'Universal 65W fast charger compatible with laptops, phones, and tablets.' },
-    { title: "Men's Classic Kurta", price: 89900, cat: 'fashion', image: 'https://images.unsplash.com/photo-1614676471928-2ed0ad1061a4?w=400', desc: 'Premium cotton kurta with elegant embroidery. Perfect for festivals.' },
-    { title: "Women's Silk Saree", price: 249900, cat: 'fashion', image: 'https://images.unsplash.com/photo-1610030469983-98e550d6193c?w=400', desc: 'Pure silk saree with traditional zari work. Available in multiple colors.' },
-    { title: 'Running Sneakers', price: 179900, cat: 'fashion', image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400', desc: 'Lightweight running shoes with advanced cushioning and breathable mesh.' },
-    { title: 'Non-Stick Cookware Set', price: 259900, cat: 'home-kitchen', image: 'https://images.unsplash.com/photo-1584990347449-a2a4fa6b7c7e?w=400', desc: '5-piece premium non-stick cookware set. Dishwasher safe, PFOA free.' },
-    { title: 'Electric Kettle 1.5L', price: 129900, cat: 'home-kitchen', image: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400', desc: 'BPA-free electric kettle with auto shut-off and keep-warm function.' },
-    { title: 'LED Desk Lamp', price: 99900, cat: 'electronics', image: 'https://images.unsplash.com/photo-1507473885765-e6ed057f782c?w=400', desc: 'Adjustable LED desk lamp with 5 color temperatures and USB charging port.' },
-    { title: 'Bamboo Cutting Board', price: 59900, cat: 'home-kitchen', image: 'https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=400', desc: 'Eco-friendly bamboo cutting board with juice groove and non-slip feet.' },
+    { title: 'Wireless Bluetooth Earbuds', price: 199900, cat: 'electronics', image: 'https://picsum.photos/seed/earbuds/400/400', desc: 'Premium wireless earbuds with 30hr battery life and active noise cancellation.' },
+    { title: 'Smartwatch Pro', price: 349900, cat: 'electronics', image: 'https://picsum.photos/seed/watch/400/400', desc: 'Feature-packed smartwatch with health tracking, GPS, and 7-day battery.' },
+    { title: 'USB-C Fast Charger 65W', price: 149900, cat: 'electronics', image: 'https://picsum.photos/seed/charger/400/400', desc: 'Universal 65W fast charger compatible with laptops, phones, and tablets.' },
+    { title: "Men's Classic Kurta", price: 89900, cat: 'fashion', image: 'https://picsum.photos/seed/kurta/400/400', desc: 'Premium cotton kurta with elegant embroidery. Perfect for festivals.' },
+    { title: "Women's Silk Saree", price: 249900, cat: 'fashion', image: 'https://picsum.photos/seed/saree/400/400', desc: 'Pure silk saree with traditional zari work. Available in multiple colors.' },
+    { title: 'Running Sneakers', price: 179900, cat: 'fashion', image: 'https://picsum.photos/seed/sneakers/400/400', desc: 'Lightweight running shoes with advanced cushioning and breathable mesh.' },
+    { title: 'Non-Stick Cookware Set', price: 259900, cat: 'home-kitchen', image: 'https://picsum.photos/seed/cookware/400/400', desc: '5-piece premium non-stick cookware set. Dishwasher safe, PFOA free.' },
+    { title: 'Electric Kettle 1.5L', price: 129900, cat: 'home-kitchen', image: 'https://picsum.photos/seed/kettle/400/400', desc: 'BPA-free electric kettle with auto shut-off and keep-warm function.' },
+    { title: 'LED Desk Lamp', price: 99900, cat: 'electronics', image: 'https://picsum.photos/seed/lamp/400/400', desc: 'Adjustable LED desk lamp with 5 color temperatures and USB charging port.' },
+    { title: 'Bamboo Cutting Board', price: 59900, cat: 'home-kitchen', image: 'https://picsum.photos/seed/cuttingboard/400/400', desc: 'Eco-friendly bamboo cutting board with juice groove and non-slip feet.' },
   ],
   [
-    { title: 'Yoga Mat Premium', price: 139900, cat: 'sports-fitness', image: 'https://images.unsplash.com/photo-1601925228040-f2e3be23e1bd?w=400', desc: 'Non-slip 6mm thick yoga mat with carrying strap. Eco-friendly TPE material.' },
-    { title: 'Resistance Bands Set', price: 79900, cat: 'sports-fitness', image: 'https://images.unsplash.com/photo-1598289431512-b97b0917affc?w=400', desc: 'Set of 5 resistance bands with varying tension levels for full body workout.' },
-    { title: 'Dumbbell Set 10kg', price: 299900, cat: 'sports-fitness', image: 'https://images.unsplash.com/photo-1586401101351-56e9b2a2cd09?w=400', desc: 'Adjustable cast iron dumbbell set. Perfect for home gym workouts.' },
-    { title: 'Atomic Habits Book', price: 39900, cat: 'books-stationery', image: 'https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400', desc: 'International bestseller on building good habits and breaking bad ones.' },
-    { title: 'Premium Notebook Set', price: 49900, cat: 'books-stationery', image: 'https://images.unsplash.com/photo-1531346878377-a5be20888e57?w=400', desc: 'Set of 3 A5 dotted notebooks. 120gsm paper, lay-flat binding.' },
-    { title: 'Gel Pen Set 24 Colors', price: 29900, cat: 'books-stationery', image: 'https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400', desc: 'Smooth writing gel pens perfect for journaling, art, and note-taking.' },
-    { title: 'Vitamin C Face Serum', price: 89900, cat: 'beauty-personal-care', image: 'https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=400', desc: '15% Vitamin C serum with hyaluronic acid. Brightens and evens skin tone.' },
-    { title: 'Wooden Hair Brush', price: 59900, cat: 'beauty-personal-care', image: 'https://images.unsplash.com/photo-1522338140262-f46f5913618a?w=400', desc: 'Natural boar bristle brush for smooth, frizz-free hair.' },
-    { title: 'Perfume Gift Set', price: 199900, cat: 'beauty-personal-care', image: 'https://images.unsplash.com/photo-1541643600914-78b084683702?w=400', desc: 'Luxury perfume gift set with 3 complementary fragrances. 30ml each.' },
-    { title: 'Protein Shaker Bottle', price: 49900, cat: 'sports-fitness', image: 'https://images.unsplash.com/photo-1593095948071-474c5cc2989d?w=400', desc: 'BPA-free 700ml shaker with BlenderBall wire whisk. Leak-proof lid.' },
+    { title: 'Yoga Mat Premium', price: 139900, cat: 'sports-fitness', image: 'https://picsum.photos/seed/yogamat/400/400', desc: 'Non-slip 6mm thick yoga mat with carrying strap. Eco-friendly TPE material.' },
+    { title: 'Resistance Bands Set', price: 79900, cat: 'sports-fitness', image: 'https://picsum.photos/seed/bands/400/400', desc: 'Set of 5 resistance bands with varying tension levels for full body workout.' },
+    { title: 'Dumbbell Set 10kg', price: 299900, cat: 'sports-fitness', image: 'https://picsum.photos/seed/dumbbells/400/400', desc: 'Adjustable cast iron dumbbell set. Perfect for home gym workouts.' },
+    { title: 'Atomic Habits Book', price: 39900, cat: 'books-stationery', image: 'https://picsum.photos/seed/book1/400/400', desc: 'International bestseller on building good habits and breaking bad ones.' },
+    { title: 'Premium Notebook Set', price: 49900, cat: 'books-stationery', image: 'https://picsum.photos/seed/notebook/400/400', desc: 'Set of 3 A5 dotted notebooks. 120gsm paper, lay-flat binding.' },
+    { title: 'Gel Pen Set 24 Colors', price: 29900, cat: 'books-stationery', image: 'https://picsum.photos/seed/pens/400/400', desc: 'Smooth writing gel pens perfect for journaling, art, and note-taking.' },
+    { title: 'Vitamin C Face Serum', price: 89900, cat: 'beauty-personal-care', image: 'https://picsum.photos/seed/serum/400/400', desc: '15% Vitamin C serum with hyaluronic acid. Brightens and evens skin tone.' },
+    { title: 'Wooden Hair Brush', price: 59900, cat: 'beauty-personal-care', image: 'https://picsum.photos/seed/hairbrush/400/400', desc: 'Natural boar bristle brush for smooth, frizz-free hair.' },
+    { title: 'Perfume Gift Set', price: 199900, cat: 'beauty-personal-care', image: 'https://picsum.photos/seed/perfume/400/400', desc: 'Luxury perfume gift set with 3 complementary fragrances. 30ml each.' },
+    { title: 'Protein Shaker Bottle', price: 49900, cat: 'sports-fitness', image: 'https://picsum.photos/seed/shaker/400/400', desc: 'BPA-free 700ml shaker with BlenderBall wire whisk. Leak-proof lid.' },
   ],
   [
-    { title: 'Mechanical Keyboard TKL', price: 279900, cat: 'electronics', image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400', desc: 'Tenkeyless mechanical keyboard with Cherry MX switches and RGB backlighting.' },
-    { title: 'Portable Bluetooth Speaker', price: 229900, cat: 'electronics', image: 'https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400', desc: '360 degree surround sound, 24hr battery, IPX7 waterproof. Perfect for outdoors.' },
-    { title: 'Webcam 1080p HD', price: 189900, cat: 'electronics', image: 'https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=400', desc: 'Full HD webcam with built-in microphone and auto light correction.' },
-    { title: 'Stainless Steel Water Bottle', price: 89900, cat: 'home-kitchen', image: 'https://images.unsplash.com/photo-1602143407151-7111542de6e8?w=400', desc: 'Double-wall insulated 1L bottle. Keeps cold 24hrs, hot 12hrs.' },
-    { title: 'Air Purifier Compact', price: 449900, cat: 'home-kitchen', image: 'https://images.unsplash.com/photo-1585771724684-38269d6639fd?w=400', desc: 'True HEPA filter removes 99.97% of particles. Covers up to 300 sq ft.' },
-    { title: 'Scented Candle Set', price: 79900, cat: 'home-kitchen', image: 'https://images.unsplash.com/photo-1603006905003-be475563bc59?w=400', desc: 'Set of 4 natural soy wax candles in lavender, vanilla, and eucalyptus.' },
-    { title: 'Casual Linen Shirt', price: 129900, cat: 'fashion', image: 'https://images.unsplash.com/photo-1596755389378-c31d21fd1273?w=400', desc: 'Breathable linen shirt for summer. Available in 6 colors, sizes S-XXL.' },
-    { title: 'Leather Wallet Slim', price: 99900, cat: 'fashion', image: 'https://images.unsplash.com/photo-1627123424574-724758594913?w=400', desc: 'Genuine leather bifold wallet with RFID blocking and 8 card slots.' },
-    { title: 'Sunglasses Polarized', price: 159900, cat: 'fashion', image: 'https://images.unsplash.com/photo-1572635196237-14b3f281503f?w=400', desc: 'UV400 polarized sunglasses with lightweight frame. Unisex design.' },
-    { title: 'Jump Rope Speed', price: 49900, cat: 'sports-fitness', image: 'https://images.unsplash.com/photo-1598136490941-30d885318abd?w=400', desc: 'Adjustable speed jump rope with ball bearings for smooth rotation.' },
+    { title: 'Mechanical Keyboard TKL', price: 279900, cat: 'electronics', image: 'https://picsum.photos/seed/keyboard/400/400', desc: 'Tenkeyless mechanical keyboard with Cherry MX switches and RGB backlighting.' },
+    { title: 'Portable Bluetooth Speaker', price: 229900, cat: 'electronics', image: 'https://picsum.photos/seed/speaker/400/400', desc: '360 degree surround sound, 24hr battery, IPX7 waterproof. Perfect for outdoors.' },
+    { title: 'Webcam 1080p HD', price: 189900, cat: 'electronics', image: 'https://picsum.photos/seed/webcam/400/400', desc: 'Full HD webcam with built-in microphone and auto light correction.' },
+    { title: 'Stainless Steel Water Bottle', price: 89900, cat: 'home-kitchen', image: 'https://picsum.photos/seed/bottle/400/400', desc: 'Double-wall insulated 1L bottle. Keeps cold 24hrs, hot 12hrs.' },
+    { title: 'Air Purifier Compact', price: 449900, cat: 'home-kitchen', image: 'https://picsum.photos/seed/purifier/400/400', desc: 'True HEPA filter removes 99.97% of particles. Covers up to 300 sq ft.' },
+    { title: 'Scented Candle Set', price: 79900, cat: 'home-kitchen', image: 'https://picsum.photos/seed/candles/400/400', desc: 'Set of 4 natural soy wax candles in lavender, vanilla, and eucalyptus.' },
+    { title: 'Casual Linen Shirt', price: 129900, cat: 'fashion', image: 'https://picsum.photos/seed/shirt/400/400', desc: 'Breathable linen shirt for summer. Available in 6 colors, sizes S-XXL.' },
+    { title: 'Leather Wallet Slim', price: 99900, cat: 'fashion', image: 'https://picsum.photos/seed/wallet/400/400', desc: 'Genuine leather bifold wallet with RFID blocking and 8 card slots.' },
+    { title: 'Sunglasses Polarized', price: 159900, cat: 'fashion', image: 'https://picsum.photos/seed/sunglasses/400/400', desc: 'UV400 polarized sunglasses with lightweight frame. Unisex design.' },
+    { title: 'Jump Rope Speed', price: 49900, cat: 'sports-fitness', image: 'https://picsum.photos/seed/jumprope/400/400', desc: 'Adjustable speed jump rope with ball bearings for smooth rotation.' },
   ],
 ]
 
 const CSV_TEMPLATE = `title,price_rupees,category_slug,image_url,description,stock
-Wireless Mouse,899,electronics,https://images.unsplash.com/photo-1527864550417-7fd91fc51a46?w=400,Ergonomic wireless mouse with 12-month battery life,50
-Cotton T-Shirt,299,fashion,https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=400,Soft 100% cotton t-shirt available in 10 colors,100`
+Wireless Mouse,899,electronics,https://picsum.photos/seed/mouse/400/400,Ergonomic wireless mouse with 12-month battery life,50
+Cotton T-Shirt,299,fashion,https://picsum.photos/seed/pens/400/400,Soft 100% cotton t-shirt available in 10 colors,100`
 
 interface LogEntry { ok: boolean; msg: string }
 
@@ -356,7 +356,7 @@ export function AdminSeedPage() {
                 </div>
                 <div className="col-span-2 space-y-1.5">
                   <Label>Image URL</Label>
-                  <Input value={form.image_url} onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))} placeholder="https://images.unsplash.com/..." />
+                  <Input value={form.image_url} onChange={e => setForm(p => ({ ...p, image_url: e.target.value }))} placeholder="https://picsum.photos/seed/yourproduct/400/400" />
                   {form.image_url && (
                     <div className="mt-2 h-24 w-24 rounded-lg overflow-hidden border bg-muted">
                       <img src={form.image_url} alt="Preview" className="h-full w-full object-cover" onError={e => (e.target as HTMLImageElement).style.display = 'none'} />
