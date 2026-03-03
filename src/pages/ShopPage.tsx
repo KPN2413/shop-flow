@@ -7,14 +7,26 @@ import { Badge } from '../components/ui/badge'
 import { ProductCard } from '../components/shop/ProductCard'
 import { supabase } from '../lib/supabase'
 import type { Product, Category } from '../lib/database.types'
+import { useSearch, useNavigate } from '@tanstack/react-router'
 
 export function ShopPage() {
+  const { category: categoryParam, q: qParam } = useSearch({ from: '/shop' as any })
+  const navigate = useNavigate()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [search, setSearch] = useState(qParam || '')
   const [sort, setSort] = useState<string>('newest')
+
+  // selectedCategory is always derived from URL param — source of truth is the URL
+  const selectedCategory = categoryParam || 'all'
+
+  const setSelectedCategory = (val: string) => {
+    navigate({
+      to: '/shop',
+      search: { category: val === 'all' ? undefined : val, q: search || undefined },
+    })
+  }
 
   useEffect(() => {
     supabase.from('categories').select('*').order('name').then(({ data }) => {
