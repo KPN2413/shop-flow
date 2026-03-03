@@ -4,7 +4,7 @@ import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Badge } from '../components/ui/badge'
-import { ProductCard } from '../components/shop/ProductCard'
+import { ProductCard } from '../components/shared/ProductCard'
 import { supabase } from '../lib/supabase'
 import type { Product, Category } from '../lib/database.types'
 

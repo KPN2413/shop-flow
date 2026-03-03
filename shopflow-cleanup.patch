@@ -1,0 +1,2162 @@
+From 5c84ba7b48632c6880aee9f4d09f9666dc458d38 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Tue, 3 Mar 2026 19:55:32 +0000
+Subject: [PATCH] chore: remove duplicate and dead code files
+
+- Remove src/main.ts, src/counter.ts, src/style.css, src/typescript.svg (Vite boilerplate leftovers)
+- Remove src/components/layout/AdminLayout.tsx (unused duplicate; components/admin/AdminLayout.tsx is canonical)
+- Remove src/components/shop/ProductCard.tsx (duplicate; components/shared/ProductCard.tsx is canonical)
+  - Fix ShopPage.tsx to import from shared/ProductCard
+- Remove legacy root-level pages (LoginPage, SignupPage, AccountPage, OrderDetailPage)
+  - Real ones live in pages/auth/ and pages/account/ and are routed correctly in App.tsx
+- Remove unused admin *Page.tsx variants (AdminDashboardPage, AdminProductsPage, etc.)
+  - These had broken imports (formatINR from supabase) and were never registered in App.tsx routing
+---
+ src/components/layout/AdminLayout.tsx   | 164 -----------
+ src/components/shop/ProductCard.tsx     |  81 ------
+ src/counter.ts                          |   9 -
+ src/main.ts                             |  24 --
+ src/pages/AccountPage.tsx               | 204 -------------
+ src/pages/LoginPage.tsx                 |  95 ------
+ src/pages/OrderDetailPage.tsx           | 152 ----------
+ src/pages/ShopPage.tsx                  |   2 +-
+ src/pages/SignupPage.tsx                | 143 ---------
+ src/pages/admin/AdminCategoriesPage.tsx | 177 ------------
+ src/pages/admin/AdminDashboardPage.tsx  | 153 ----------
+ src/pages/admin/AdminInventoryPage.tsx  | 159 ----------
+ src/pages/admin/AdminOrdersPage.tsx     | 184 ------------
+ src/pages/admin/AdminProductsPage.tsx   | 366 ------------------------
+ src/style.css                           |  96 -------
+ src/typescript.svg                      |   1 -
+ 16 files changed, 1 insertion(+), 2009 deletions(-)
+ delete mode 100644 src/components/layout/AdminLayout.tsx
+ delete mode 100644 src/components/shop/ProductCard.tsx
+ delete mode 100644 src/counter.ts
+ delete mode 100644 src/main.ts
+ delete mode 100644 src/pages/AccountPage.tsx
+ delete mode 100644 src/pages/LoginPage.tsx
+ delete mode 100644 src/pages/OrderDetailPage.tsx
+ delete mode 100644 src/pages/SignupPage.tsx
+ delete mode 100644 src/pages/admin/AdminCategoriesPage.tsx
+ delete mode 100644 src/pages/admin/AdminDashboardPage.tsx
+ delete mode 100644 src/pages/admin/AdminInventoryPage.tsx
+ delete mode 100644 src/pages/admin/AdminOrdersPage.tsx
+ delete mode 100644 src/pages/admin/AdminProductsPage.tsx
+ delete mode 100644 src/style.css
+ delete mode 100644 src/typescript.svg
+
+diff --git a/src/components/layout/AdminLayout.tsx b/src/components/layout/AdminLayout.tsx
+deleted file mode 100644
+index a0bb847..0000000
+--- a/src/components/layout/AdminLayout.tsx
++++ /dev/null
+@@ -1,164 +0,0 @@
+-import { type ReactNode } from 'react'
+-import { Link, useNavigate, useRouterState } from '@tanstack/react-router'
+-import { LayoutDashboard, Package, Tag, Archive, ShoppingBag, LogOut, Home, BarChart3, Menu, X } from 'lucide-react'
+-import { useState } from 'react'
+-import { Button } from '../ui/button'
+-import { useAuth } from '@/lib/auth-context'
+-import { toast } from 'react-hot-toast'
+-
+-const navItems = [
+-  { to: '/admin', icon: LayoutDashboard, label: 'Dashboard', exact: true },
+-  { to: '/admin/products', icon: Package, label: 'Products' },
+-  { to: '/admin/categories', icon: Tag, label: 'Categories' },
+-  { to: '/admin/inventory', icon: Archive, label: 'Inventory' },
+-  { to: '/admin/orders', icon: ShoppingBag, label: 'Orders' },
+-]
+-
+-function NavLink({ to, icon: Icon, label, exact }: typeof navItems[0] & { exact?: boolean }) {
+-  const { location } = useRouterState()
+-  const isActive = exact ? location.pathname === to : location.pathname.startsWith(to)
+-
+-  return (
+-    <Link to={to} className={`admin-sidebar-link ${isActive ? 'active' : ''}`}>
+-      <Icon className="h-4 w-4" />
+-      {label}
+-    </Link>
+-  )
+-}
+-
+-interface AdminLayoutProps {
+-  children: ReactNode
+-}
+-
+-export function AdminLayout({ children }: AdminLayoutProps) {
+-  const { user, profile, isAdmin, isLoading, signOut } = useAuth()
+-  const navigate = useNavigate()
+-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
+-
+-  if (isLoading) {
+-    return (
+-      <div className="flex h-screen items-center justify-center">
+-        <div className="text-muted-foreground">Loading...</div>
+-      </div>
+-    )
+-  }
+-
+-  if (!user || !isAdmin) {
+-    return (
+-      <div className="flex h-screen items-center justify-center">
+-        <div className="text-center p-8">
+-          <h2 className="text-xl font-bold mb-2" style={{ fontFamily: 'var(--font-heading)' }}>Access Denied</h2>
+-          <p className="text-muted-foreground mb-4">You must be an admin to access this area.</p>
+-          <Link to="/"><Button variant="outline">Return Home</Button></Link>
+-        </div>
+-      </div>
+-    )
+-  }
+-
+-  async function handleSignOut() {
+-    await signOut()
+-    toast.success('Signed out')
+-    navigate({ to: '/' })
+-  }
+-
+-  return (
+-    <div className="flex h-screen overflow-hidden">
+-      {/* Desktop Sidebar */}
+-      <aside
+-        className="hidden lg:flex w-64 flex-col border-r"
+-        style={{ backgroundColor: 'hsl(var(--sidebar))', color: 'hsl(var(--sidebar-foreground))' }}
+-      >
+-        {/* Logo */}
+-        <div className="flex h-16 items-center gap-3 border-b px-6" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+-          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-secondary">
+-            <BarChart3 className="h-4 w-4 text-white" />
+-          </div>
+-          <span className="text-lg font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+-            Admin Panel
+-          </span>
+-        </div>
+-
+-        {/* Nav */}
+-        <nav className="flex-1 overflow-y-auto p-4 space-y-1">
+-          {navItems.map((item) => (
+-            <NavLink key={item.to} {...item} />
+-          ))}
+-          <div className="pt-4 mt-4" style={{ borderTop: '1px solid hsl(var(--sidebar-border))' }}>
+-            <Link to="/" className="admin-sidebar-link">
+-              <Home className="h-4 w-4" /> View Store
+-            </Link>
+-          </div>
+-        </nav>
+-
+-        {/* User */}
+-        <div className="border-t p-4 space-y-3" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+-          <div className="flex items-center gap-3">
+-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-secondary text-white text-sm font-bold">
+-              {(profile?.full_name || user.email || 'A').charAt(0).toUpperCase()}
+-            </div>
+-            <div className="min-w-0">
+-              <p className="text-sm font-medium truncate">{profile?.full_name || 'Admin'}</p>
+-              <p className="text-xs truncate" style={{ color: 'hsl(var(--sidebar-foreground) / 0.5)' }}>{user.email}</p>
+-            </div>
+-          </div>
+-          <button
+-            onClick={handleSignOut}
+-            className="admin-sidebar-link w-full text-left"
+-            style={{ color: 'hsl(0 72% 60%)' }}
+-          >
+-            <LogOut className="h-4 w-4" /> Sign Out
+-          </button>
+-        </div>
+-      </aside>
+-
+-      {/* Mobile sidebar overlay */}
+-      {mobileSidebarOpen && (
+-        <div className="fixed inset-0 z-50 lg:hidden">
+-          <div className="absolute inset-0 bg-black/50" onClick={() => setMobileSidebarOpen(false)} />
+-          <aside
+-            className="absolute left-0 top-0 h-full w-64 flex flex-col"
+-            style={{ backgroundColor: 'hsl(var(--sidebar))' }}
+-          >
+-            <div className="flex h-16 items-center justify-between border-b px-4" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+-              <span className="text-lg font-bold text-white" style={{ fontFamily: 'var(--font-heading)' }}>Admin Panel</span>
+-              <Button variant="ghost" size="icon" onClick={() => setMobileSidebarOpen(false)} className="text-white">
+-                <X className="h-5 w-5" />
+-              </Button>
+-            </div>
+-            <nav className="flex-1 p-4 space-y-1">
+-              {navItems.map((item) => (
+-                <NavLink key={item.to} {...item} />
+-              ))}
+-              <div className="pt-4 mt-4" style={{ borderTop: '1px solid hsl(var(--sidebar-border))' }}>
+-                <Link to="/" className="admin-sidebar-link">
+-                  <Home className="h-4 w-4" /> View Store
+-                </Link>
+-              </div>
+-            </nav>
+-            <div className="border-t p-4" style={{ borderColor: 'hsl(var(--sidebar-border))' }}>
+-              <button onClick={handleSignOut} className="admin-sidebar-link w-full text-left" style={{ color: 'hsl(0 72% 60%)' }}>
+-                <LogOut className="h-4 w-4" /> Sign Out
+-              </button>
+-            </div>
+-          </aside>
+-        </div>
+-      )}
+-
+-      {/* Main content */}
+-      <div className="flex flex-1 flex-col overflow-hidden">
+-        {/* Mobile header */}
+-        <header className="flex h-16 items-center border-b bg-card px-4 lg:hidden">
+-          <Button variant="ghost" size="icon" onClick={() => setMobileSidebarOpen(true)}>
+-            <Menu className="h-5 w-5" />
+-          </Button>
+-          <span className="ml-3 font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>Admin Panel</span>
+-        </header>
+-
+-        {/* Page content */}
+-        <main className="flex-1 overflow-y-auto bg-background p-6">
+-          {children}
+-        </main>
+-      </div>
+-    </div>
+-  )
+-}
+diff --git a/src/components/shop/ProductCard.tsx b/src/components/shop/ProductCard.tsx
+deleted file mode 100644
+index 7c7fd92..0000000
+--- a/src/components/shop/ProductCard.tsx
++++ /dev/null
+@@ -1,81 +0,0 @@
+-import { Link } from '@tanstack/react-router'
+-import { ShoppingCart, Package } from 'lucide-react'
+-import { Button } from '../ui/button'
+-import { Badge } from '../ui/badge'
+-import { formatINR } from '../../lib/format'
+-import type { Product } from '../../lib/database.types'
+-import { useCart } from '../../lib/cart-context'
+-import toast from 'react-hot-toast'
+-
+-interface ProductCardProps {
+-  product: Product & { inventory?: { stock: number }[] }
+-}
+-
+-export function ProductCard({ product }: ProductCardProps) {
+-  const { addToCart } = useCart()
+-  const stock = product.inventory?.[0]?.stock ?? 0
+-  const inStock = stock > 0
+-
+-  const handleAddToCart = async (e: React.MouseEvent) => {
+-    e.preventDefault()
+-    e.stopPropagation()
+-    if (!inStock) return
+-    const result = await addToCart(product.id)
+-    if (result?.error) toast.error(result.error)
+-    else toast.success('Added to cart!')
+-  }
+-
+-  return (
+-    <Link to="/product/$slug" params={{ slug: product.slug }} className="block group">
+-      <div className="shopflow-card overflow-hidden">
+-        {/* Image */}
+-        <div className="aspect-square bg-secondary/50 overflow-hidden relative">
+-          {product.image_url ? (
+-            <img
+-              src={product.image_url}
+-              alt={product.title}
+-              className="w-full h-full object-cover transition-transform duration-300 group-hover:scale-105"
+-              onError={(e) => { (e.target as HTMLImageElement).style.display = 'none' }}
+-            />
+-          ) : (
+-            <div className="w-full h-full flex items-center justify-center">
+-              <Package className="w-12 h-12 text-muted-foreground/30" />
+-            </div>
+-          )}
+-          {!inStock && (
+-            <div className="absolute inset-0 bg-white/70 flex items-center justify-center">
+-              <Badge variant="secondary" className="badge-stock-out text-xs font-semibold">Out of Stock</Badge>
+-            </div>
+-          )}
+-        </div>
+-
+-        {/* Info */}
+-        <div className="p-4">
+-          <div className="mb-1">
+-            {product.categories && (
+-              <span className="text-xs text-muted-foreground uppercase tracking-wide">{(product.categories as any).name}</span>
+-            )}
+-          </div>
+-          <h3 className="font-semibold text-sm leading-snug mb-2 line-clamp-2 group-hover:text-accent transition-colors">
+-            {product.title}
+-          </h3>
+-          <div className="flex items-center justify-between gap-2">
+-            <span className="price-tag text-lg">{formatINR(product.price_paise)}</span>
+-            <Button
+-              size="sm"
+-              variant={inStock ? 'default' : 'secondary'}
+-              disabled={!inStock}
+-              onClick={handleAddToCart}
+-              className="shrink-0"
+-            >
+-              <ShoppingCart className="w-3.5 h-3.5" />
+-            </Button>
+-          </div>
+-          {inStock && stock <= 5 && (
+-            <p className="text-xs text-amber-600 mt-1">Only {stock} left!</p>
+-          )}
+-        </div>
+-      </div>
+-    </Link>
+-  )
+-}
+diff --git a/src/counter.ts b/src/counter.ts
+deleted file mode 100644
+index 09e5afd..0000000
+--- a/src/counter.ts
++++ /dev/null
+@@ -1,9 +0,0 @@
+-export function setupCounter(element: HTMLButtonElement) {
+-  let counter = 0
+-  const setCounter = (count: number) => {
+-    counter = count
+-    element.innerHTML = `count is ${counter}`
+-  }
+-  element.addEventListener('click', () => setCounter(counter + 1))
+-  setCounter(0)
+-}
+diff --git a/src/main.ts b/src/main.ts
+deleted file mode 100644
+index 6396b50..0000000
+--- a/src/main.ts
++++ /dev/null
+@@ -1,24 +0,0 @@
+-import './style.css'
+-import typescriptLogo from './typescript.svg'
+-import viteLogo from '/vite.svg'
+-import { setupCounter } from './counter.ts'
+-
+-document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
+-  <div>
+-    <a href="https://vite.dev" target="_blank">
+-      <img src="${viteLogo}" class="logo" alt="Vite logo" />
+-    </a>
+-    <a href="https://www.typescriptlang.org/" target="_blank">
+-      <img src="${typescriptLogo}" class="logo vanilla" alt="TypeScript logo" />
+-    </a>
+-    <h1>Vite + TypeScript</h1>
+-    <div class="card">
+-      <button id="counter" type="button"></button>
+-    </div>
+-    <p class="read-the-docs">
+-      Click on the Vite and TypeScript logos to learn more
+-    </p>
+-  </div>
+-`
+-
+-setupCounter(document.querySelector<HTMLButtonElement>('#counter')!)
+diff --git a/src/pages/AccountPage.tsx b/src/pages/AccountPage.tsx
+deleted file mode 100644
+index bb8cd73..0000000
+--- a/src/pages/AccountPage.tsx
++++ /dev/null
+@@ -1,204 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { Link, useNavigate } from '@tanstack/react-router'
+-import { User, Package, Edit, Save, X } from 'lucide-react'
+-import { Button } from '@/components/ui/button'
+-import { Input } from '@/components/ui/input'
+-import { Label } from '@/components/ui/label'
+-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+-import { Badge } from '@/components/ui/badge'
+-import { supabase, formatINR } from '@/lib/supabase'
+-import { useAuth } from '@/lib/auth-context'
+-import { OrderStatusBadge, PaymentStatusBadge } from '@/components/shared/OrderStatusBadge'
+-import { toast } from 'react-hot-toast'
+-import type { OrderWithItems } from '@/lib/database.types'
+-
+-export function AccountPage() {
+-  const { user, profile, refreshProfile } = useAuth()
+-  const navigate = useNavigate()
+-  const [orders, setOrders] = useState<OrderWithItems[]>([])
+-  const [loadingOrders, setLoadingOrders] = useState(true)
+-  const [editing, setEditing] = useState(false)
+-  const [fullName, setFullName] = useState(profile?.full_name || '')
+-  const [phone, setPhone] = useState(profile?.phone || '')
+-  const [saving, setSaving] = useState(false)
+-
+-  useEffect(() => {
+-    if (!user) { navigate({ to: '/login' }); return }
+-    fetchOrders()
+-  }, [user])
+-
+-  useEffect(() => {
+-    setFullName(profile?.full_name || '')
+-    setPhone(profile?.phone || '')
+-  }, [profile])
+-
+-  async function fetchOrders() {
+-    if (!user) return
+-    const { data } = await supabase
+-      .from('orders')
+-      .select('*, order_items(*)')
+-      .eq('user_id', user.id)
+-      .order('created_at', { ascending: false })
+-    setOrders((data as OrderWithItems[]) ?? [])
+-    setLoadingOrders(false)
+-  }
+-
+-  async function handleSaveProfile() {
+-    if (!user) return
+-    setSaving(true)
+-    const { error } = await supabase
+-      .from('profiles')
+-      .upsert({ user_id: user.id, full_name: fullName, phone: phone || null, role: profile?.role || 'USER' })
+-    if (error) toast.error(error.message)
+-    else {
+-      toast.success('Profile updated!')
+-      await refreshProfile()
+-      setEditing(false)
+-    }
+-    setSaving(false)
+-  }
+-
+-  if (!user) return null
+-
+-  return (
+-    <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+-      <h1 className="text-2xl font-bold mb-6" style={{ fontFamily: 'var(--font-heading)' }}>My Account</h1>
+-
+-      <Tabs defaultValue="orders">
+-        <TabsList className="mb-6">
+-          <TabsTrigger value="orders" className="gap-2">
+-            <Package className="h-4 w-4" /> Orders
+-          </TabsTrigger>
+-          <TabsTrigger value="profile" className="gap-2">
+-            <User className="h-4 w-4" /> Profile
+-          </TabsTrigger>
+-        </TabsList>
+-
+-        {/* Orders Tab */}
+-        <TabsContent value="orders">
+-          <Card>
+-            <CardHeader>
+-              <CardTitle style={{ fontFamily: 'var(--font-heading)' }}>My Orders</CardTitle>
+-            </CardHeader>
+-            <CardContent>
+-              {loadingOrders ? (
+-                <div className="space-y-3">
+-                  {Array.from({ length: 3 }).map((_, i) => (
+-                    <div key={i} className="h-16 bg-muted rounded-lg animate-pulse" />
+-                  ))}
+-                </div>
+-              ) : orders.length === 0 ? (
+-                <div className="py-16 text-center">
+-                  <Package className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+-                  <p className="font-semibold" style={{ fontFamily: 'var(--font-heading)' }}>No orders yet</p>
+-                  <p className="text-sm text-muted-foreground mt-1">Start shopping to see your orders here.</p>
+-                  <Link to="/shop" className="mt-4 inline-block">
+-                    <Button style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}>Shop Now</Button>
+-                  </Link>
+-                </div>
+-              ) : (
+-                <div className="overflow-x-auto">
+-                  <Table>
+-                    <TableHeader>
+-                      <TableRow>
+-                        <TableHead>Order ID</TableHead>
+-                        <TableHead>Date</TableHead>
+-                        <TableHead>Items</TableHead>
+-                        <TableHead>Total</TableHead>
+-                        <TableHead>Status</TableHead>
+-                        <TableHead>Payment</TableHead>
+-                        <TableHead></TableHead>
+-                      </TableRow>
+-                    </TableHeader>
+-                    <TableBody>
+-                      {orders.map((order) => (
+-                        <TableRow key={order.id}>
+-                          <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}...</TableCell>
+-                          <TableCell className="text-sm text-muted-foreground">
+-                            {new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+-                          </TableCell>
+-                          <TableCell className="text-sm">
+-                            {order.order_items.length} item{order.order_items.length !== 1 ? 's' : ''}
+-                          </TableCell>
+-                          <TableCell className="font-semibold price-inr text-sm">{formatINR(order.total_paise)}</TableCell>
+-                          <TableCell><OrderStatusBadge status={order.status as any} /></TableCell>
+-                          <TableCell><PaymentStatusBadge status={order.payment_status as any} /></TableCell>
+-                          <TableCell>
+-                            <Link to="/account/orders/$orderId" params={{ orderId: order.id }}>
+-                              <Button variant="ghost" size="sm" className="text-xs">View</Button>
+-                            </Link>
+-                          </TableCell>
+-                        </TableRow>
+-                      ))}
+-                    </TableBody>
+-                  </Table>
+-                </div>
+-              )}
+-            </CardContent>
+-          </Card>
+-        </TabsContent>
+-
+-        {/* Profile Tab */}
+-        <TabsContent value="profile">
+-          <Card>
+-            <CardHeader className="flex flex-row items-center justify-between">
+-              <CardTitle style={{ fontFamily: 'var(--font-heading)' }}>Profile Information</CardTitle>
+-              {!editing ? (
+-                <Button variant="outline" size="sm" className="gap-2" onClick={() => setEditing(true)}>
+-                  <Edit className="h-3.5 w-3.5" /> Edit
+-                </Button>
+-              ) : (
+-                <div className="flex gap-2">
+-                  <Button variant="outline" size="sm" className="gap-1.5" onClick={() => setEditing(false)}>
+-                    <X className="h-3.5 w-3.5" /> Cancel
+-                  </Button>
+-                  <Button size="sm" className="gap-1.5" disabled={saving} onClick={handleSaveProfile}
+-                    style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}>
+-                    <Save className="h-3.5 w-3.5" /> {saving ? 'Saving...' : 'Save'}
+-                  </Button>
+-                </div>
+-              )}
+-            </CardHeader>
+-            <CardContent className="space-y-6">
+-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+-                <div className="space-y-2">
+-                  <Label>Full Name</Label>
+-                  {editing ? (
+-                    <Input value={fullName} onChange={(e) => setFullName(e.target.value)} />
+-                  ) : (
+-                    <p className="text-sm font-medium py-2">{profile?.full_name || '—'}</p>
+-                  )}
+-                </div>
+-                <div className="space-y-2">
+-                  <Label>Email</Label>
+-                  <p className="text-sm font-medium py-2">{user.email}</p>
+-                </div>
+-                <div className="space-y-2">
+-                  <Label>Phone</Label>
+-                  {editing ? (
+-                    <Input value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+91 98765 43210" />
+-                  ) : (
+-                    <p className="text-sm font-medium py-2">{profile?.phone || '—'}</p>
+-                  )}
+-                </div>
+-                <div className="space-y-2">
+-                  <Label>Account Role</Label>
+-                  <div className="py-2">
+-                    <Badge variant="outline" className="capitalize">
+-                      {profile?.role?.toLowerCase() || 'user'}
+-                    </Badge>
+-                  </div>
+-                </div>
+-              </div>
+-              <div className="text-xs text-muted-foreground">
+-                Member since {profile?.created_at ? new Date(profile.created_at).toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }) : '—'}
+-              </div>
+-            </CardContent>
+-          </Card>
+-        </TabsContent>
+-      </Tabs>
+-    </main>
+-  )
+-}
+diff --git a/src/pages/LoginPage.tsx b/src/pages/LoginPage.tsx
+deleted file mode 100644
+index d24f59a..0000000
+--- a/src/pages/LoginPage.tsx
++++ /dev/null
+@@ -1,95 +0,0 @@
+-import { useState } from 'react'
+-import { Link, useNavigate } from '@tanstack/react-router'
+-import { Package } from 'lucide-react'
+-import { Button } from '@/components/ui/button'
+-import { Input } from '@/components/ui/input'
+-import { Label } from '@/components/ui/label'
+-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+-import { supabase } from '@/lib/supabase'
+-import { toast } from 'react-hot-toast'
+-
+-export function LoginPage() {
+-  const navigate = useNavigate()
+-  const [email, setEmail] = useState('')
+-  const [password, setPassword] = useState('')
+-  const [isLoading, setIsLoading] = useState(false)
+-
+-  async function handleLogin(e: React.FormEvent) {
+-    e.preventDefault()
+-    setIsLoading(true)
+-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+-    if (error) {
+-      toast.error(error.message)
+-      setIsLoading(false)
+-    } else {
+-      toast.success('Welcome back!')
+-      navigate({ to: '/' })
+-    }
+-  }
+-
+-  return (
+-    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+-      <div className="w-full max-w-md">
+-        <div className="flex flex-col items-center mb-8">
+-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-3">
+-            <Package className="h-6 w-6 text-primary-foreground" />
+-          </div>
+-          <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+-            Shop<span style={{ color: 'hsl(var(--secondary))' }}>Flow</span>
+-          </h1>
+-        </div>
+-
+-        <Card>
+-          <CardHeader>
+-            <CardTitle style={{ fontFamily: 'var(--font-heading)' }}>Sign In</CardTitle>
+-            <CardDescription>Enter your email and password to access your account</CardDescription>
+-          </CardHeader>
+-          <form onSubmit={handleLogin}>
+-            <CardContent className="space-y-4">
+-              <div className="space-y-2">
+-                <Label htmlFor="email">Email</Label>
+-                <Input
+-                  id="email"
+-                  type="email"
+-                  placeholder="you@example.com"
+-                  value={email}
+-                  onChange={(e) => setEmail(e.target.value)}
+-                  required
+-                  autoComplete="email"
+-                />
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="password">Password</Label>
+-                <Input
+-                  id="password"
+-                  type="password"
+-                  placeholder="••••••••"
+-                  value={password}
+-                  onChange={(e) => setPassword(e.target.value)}
+-                  required
+-                  autoComplete="current-password"
+-                />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex flex-col gap-4">
+-              <Button
+-                type="submit"
+-                className="w-full"
+-                disabled={isLoading}
+-                style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
+-              >
+-                {isLoading ? 'Signing in...' : 'Sign In'}
+-              </Button>
+-              <p className="text-sm text-center text-muted-foreground">
+-                Don't have an account?{' '}
+-                <Link to="/signup" className="text-secondary font-medium hover:underline">
+-                  Sign up
+-                </Link>
+-              </p>
+-            </CardFooter>
+-          </form>
+-        </Card>
+-      </div>
+-    </main>
+-  )
+-}
+diff --git a/src/pages/OrderDetailPage.tsx b/src/pages/OrderDetailPage.tsx
+deleted file mode 100644
+index 0d38be8..0000000
+--- a/src/pages/OrderDetailPage.tsx
++++ /dev/null
+@@ -1,152 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { useParams, Link, useNavigate } from '@tanstack/react-router'
+-import { ArrowLeft, Package } from 'lucide-react'
+-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+-import { Separator } from '@/components/ui/separator'
+-import { Button } from '@/components/ui/button'
+-import { supabase, formatINR } from '@/lib/supabase'
+-import { useAuth } from '@/lib/auth-context'
+-import { OrderStatusBadge, PaymentStatusBadge } from '@/components/shared/OrderStatusBadge'
+-import type { OrderWithItems } from '@/lib/database.types'
+-
+-export function OrderDetailPage() {
+-  const { orderId } = useParams({ strict: false }) as { orderId: string }
+-  const { user } = useAuth()
+-  const navigate = useNavigate()
+-  const [order, setOrder] = useState<OrderWithItems | null>(null)
+-  const [isLoading, setIsLoading] = useState(true)
+-
+-  useEffect(() => {
+-    if (!user) { navigate({ to: '/login' }); return }
+-    async function fetchOrder() {
+-      const { data } = await supabase
+-        .from('orders')
+-        .select('*, order_items(*)')
+-        .eq('id', orderId)
+-        .eq('user_id', user!.id)
+-        .single()
+-      setOrder(data as OrderWithItems | null)
+-      setIsLoading(false)
+-    }
+-    fetchOrder()
+-  }, [orderId, user])
+-
+-  if (isLoading) {
+-    return (
+-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+-        <div className="animate-pulse space-y-4">
+-          <div className="h-8 bg-muted rounded w-1/2" />
+-          <div className="h-48 bg-muted rounded-xl" />
+-        </div>
+-      </main>
+-    )
+-  }
+-
+-  if (!order) {
+-    return (
+-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+-        <div className="text-center py-16">
+-          <Package className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
+-          <p className="font-semibold">Order not found</p>
+-          <Link to="/account"><Button variant="outline" className="mt-4 gap-2"><ArrowLeft className="h-4 w-4" />My Orders</Button></Link>
+-        </div>
+-      </main>
+-    )
+-  }
+-
+-  const subtotal = order.order_items.reduce((s, i) => s + i.price_paise_snapshot * i.qty, 0)
+-  const deliveryFee = order.total_paise - subtotal
+-
+-  return (
+-    <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6 lg:px-8">
+-      <Link to="/account" className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground mb-6">
+-        <ArrowLeft className="h-3.5 w-3.5" /> Back to Orders
+-      </Link>
+-
+-      <div className="flex flex-wrap items-start justify-between gap-4 mb-6">
+-        <div>
+-          <h1 className="text-xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Order Details</h1>
+-          <p className="text-sm text-muted-foreground font-mono mt-1">#{order.id}</p>
+-        </div>
+-        <div className="flex flex-col items-end gap-2">
+-          <OrderStatusBadge status={order.status as any} />
+-          <PaymentStatusBadge status={order.payment_status as any} />
+-        </div>
+-      </div>
+-
+-      <div className="space-y-6">
+-        {/* Order meta */}
+-        <Card>
+-          <CardContent className="pt-6">
+-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+-              <div>
+-                <p className="text-muted-foreground text-xs uppercase tracking-wide">Placed On</p>
+-                <p className="font-medium mt-1">{new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}</p>
+-              </div>
+-              <div>
+-                <p className="text-muted-foreground text-xs uppercase tracking-wide">Payment</p>
+-                <p className="font-medium mt-1">{order.payment_method}</p>
+-              </div>
+-              <div>
+-                <p className="text-muted-foreground text-xs uppercase tracking-wide">Items</p>
+-                <p className="font-medium mt-1">{order.order_items.length} items</p>
+-              </div>
+-              <div>
+-                <p className="text-muted-foreground text-xs uppercase tracking-wide">Total</p>
+-                <p className="font-bold mt-1 price-inr">{formatINR(order.total_paise)}</p>
+-              </div>
+-            </div>
+-          </CardContent>
+-        </Card>
+-
+-        {/* Items */}
+-        <Card>
+-          <CardHeader className="pb-3">
+-            <CardTitle className="text-base" style={{ fontFamily: 'var(--font-heading)' }}>Items Ordered</CardTitle>
+-          </CardHeader>
+-          <CardContent>
+-            <Table>
+-              <TableHeader>
+-                <TableRow>
+-                  <TableHead>Product</TableHead>
+-                  <TableHead className="text-right">Price</TableHead>
+-                  <TableHead className="text-right">Qty</TableHead>
+-                  <TableHead className="text-right">Subtotal</TableHead>
+-                </TableRow>
+-              </TableHeader>
+-              <TableBody>
+-                {order.order_items.map((item) => (
+-                  <TableRow key={item.id}>
+-                    <TableCell className="font-medium text-sm">{item.title_snapshot}</TableCell>
+-                    <TableCell className="text-right text-sm">{formatINR(item.price_paise_snapshot)}</TableCell>
+-                    <TableCell className="text-right text-sm">{item.qty}</TableCell>
+-                    <TableCell className="text-right font-semibold text-sm price-inr">
+-                      {formatINR(item.price_paise_snapshot * item.qty)}
+-                    </TableCell>
+-                  </TableRow>
+-                ))}
+-              </TableBody>
+-            </Table>
+-            <Separator className="my-4" />
+-            <div className="space-y-2 text-sm">
+-              <div className="flex justify-between">
+-                <span className="text-muted-foreground">Subtotal</span>
+-                <span>{formatINR(subtotal)}</span>
+-              </div>
+-              <div className="flex justify-between">
+-                <span className="text-muted-foreground">Delivery</span>
+-                <span className={deliveryFee === 0 ? 'text-green-600' : ''}>{deliveryFee === 0 ? 'FREE' : formatINR(deliveryFee)}</span>
+-              </div>
+-              <Separator />
+-              <div className="flex justify-between font-bold text-base">
+-                <span>Total</span>
+-                <span className="price-inr">{formatINR(order.total_paise)}</span>
+-              </div>
+-            </div>
+-          </CardContent>
+-        </Card>
+-      </div>
+-    </main>
+-  )
+-}
+diff --git a/src/pages/ShopPage.tsx b/src/pages/ShopPage.tsx
+index 04f46e0..e467bef 100644
+--- a/src/pages/ShopPage.tsx
++++ b/src/pages/ShopPage.tsx
+@@ -4,7 +4,7 @@ import { Input } from '../components/ui/input'
+ import { Button } from '../components/ui/button'
+ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
+ import { Badge } from '../components/ui/badge'
+-import { ProductCard } from '../components/shop/ProductCard'
++import { ProductCard } from '../components/shared/ProductCard'
+ import { supabase } from '../lib/supabase'
+ import type { Product, Category } from '../lib/database.types'
+ 
+diff --git a/src/pages/SignupPage.tsx b/src/pages/SignupPage.tsx
+deleted file mode 100644
+index fe1d6c0..0000000
+--- a/src/pages/SignupPage.tsx
++++ /dev/null
+@@ -1,143 +0,0 @@
+-import { useState } from 'react'
+-import { Link, useNavigate } from '@tanstack/react-router'
+-import { Package } from 'lucide-react'
+-import { Button } from '@/components/ui/button'
+-import { Input } from '@/components/ui/input'
+-import { Label } from '@/components/ui/label'
+-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
+-import { supabase } from '@/lib/supabase'
+-import { toast } from 'react-hot-toast'
+-
+-export function SignupPage() {
+-  const navigate = useNavigate()
+-  const [fullName, setFullName] = useState('')
+-  const [email, setEmail] = useState('')
+-  const [phone, setPhone] = useState('')
+-  const [password, setPassword] = useState('')
+-  const [isLoading, setIsLoading] = useState(false)
+-
+-  async function handleSignup(e: React.FormEvent) {
+-    e.preventDefault()
+-    if (password.length < 6) {
+-      toast.error('Password must be at least 6 characters')
+-      return
+-    }
+-    setIsLoading(true)
+-
+-    const { data, error } = await supabase.auth.signUp({
+-      email,
+-      password,
+-      options: {
+-        data: { full_name: fullName },
+-      },
+-    })
+-
+-    if (error) {
+-      toast.error(error.message)
+-      setIsLoading(false)
+-      return
+-    }
+-
+-    if (data.user) {
+-      // Create profile
+-      await supabase.from('profiles').upsert({
+-        user_id: data.user.id,
+-        full_name: fullName,
+-        phone: phone || null,
+-        role: 'USER',
+-      })
+-      toast.success('Account created successfully! Welcome to ShopFlow.')
+-      navigate({ to: '/' })
+-    }
+-
+-    setIsLoading(false)
+-  }
+-
+-  return (
+-    <main className="flex min-h-[calc(100vh-4rem)] items-center justify-center px-4 py-12">
+-      <div className="w-full max-w-md">
+-        <div className="flex flex-col items-center mb-8">
+-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary mb-3">
+-            <Package className="h-6 w-6 text-primary-foreground" />
+-          </div>
+-          <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>
+-            Shop<span style={{ color: 'hsl(var(--secondary))' }}>Flow</span>
+-          </h1>
+-        </div>
+-
+-        <Card>
+-          <CardHeader>
+-            <CardTitle style={{ fontFamily: 'var(--font-heading)' }}>Create Account</CardTitle>
+-            <CardDescription>Join ShopFlow — India's trusted e-commerce platform</CardDescription>
+-          </CardHeader>
+-          <form onSubmit={handleSignup}>
+-            <CardContent className="space-y-4">
+-              <div className="space-y-2">
+-                <Label htmlFor="fullName">Full Name</Label>
+-                <Input
+-                  id="fullName"
+-                  placeholder="Rahul Sharma"
+-                  value={fullName}
+-                  onChange={(e) => setFullName(e.target.value)}
+-                  required
+-                  autoComplete="name"
+-                />
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="email">Email</Label>
+-                <Input
+-                  id="email"
+-                  type="email"
+-                  placeholder="rahul@example.com"
+-                  value={email}
+-                  onChange={(e) => setEmail(e.target.value)}
+-                  required
+-                  autoComplete="email"
+-                />
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="phone">Phone <span className="text-muted-foreground">(optional)</span></Label>
+-                <Input
+-                  id="phone"
+-                  type="tel"
+-                  placeholder="+91 98765 43210"
+-                  value={phone}
+-                  onChange={(e) => setPhone(e.target.value)}
+-                  autoComplete="tel"
+-                />
+-              </div>
+-              <div className="space-y-2">
+-                <Label htmlFor="password">Password</Label>
+-                <Input
+-                  id="password"
+-                  type="password"
+-                  placeholder="Minimum 6 characters"
+-                  value={password}
+-                  onChange={(e) => setPassword(e.target.value)}
+-                  required
+-                  autoComplete="new-password"
+-                />
+-              </div>
+-            </CardContent>
+-            <CardFooter className="flex flex-col gap-4">
+-              <Button
+-                type="submit"
+-                className="w-full"
+-                disabled={isLoading}
+-                style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
+-              >
+-                {isLoading ? 'Creating Account...' : 'Create Account'}
+-              </Button>
+-              <p className="text-sm text-center text-muted-foreground">
+-                Already have an account?{' '}
+-                <Link to="/login" className="text-secondary font-medium hover:underline">
+-                  Sign in
+-                </Link>
+-              </p>
+-            </CardFooter>
+-          </form>
+-        </Card>
+-      </div>
+-    </main>
+-  )
+-}
+diff --git a/src/pages/admin/AdminCategoriesPage.tsx b/src/pages/admin/AdminCategoriesPage.tsx
+deleted file mode 100644
+index 3bd6309..0000000
+--- a/src/pages/admin/AdminCategoriesPage.tsx
++++ /dev/null
+@@ -1,177 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { Plus, Pencil, Trash2 } from 'lucide-react'
+-import { Button } from '@/components/ui/button'
+-import { Input } from '@/components/ui/input'
+-import { Label } from '@/components/ui/label'
+-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+-import { supabase, generateSlug } from '@/lib/supabase'
+-import { toast } from 'react-hot-toast'
+-
+-interface Category { id: string; name: string; slug: string; created_at: string }
+-
+-export function AdminCategoriesPage() {
+-  const [categories, setCategories] = useState<Category[]>([])
+-  const [isLoading, setIsLoading] = useState(true)
+-  const [dialogOpen, setDialogOpen] = useState(false)
+-  const [editingId, setEditingId] = useState<string | null>(null)
+-  const [name, setName] = useState('')
+-  const [slug, setSlug] = useState('')
+-  const [saving, setSaving] = useState(false)
+-
+-  async function fetchCategories() {
+-    const { data } = await supabase.from('categories').select('*').order('name')
+-    setCategories(data ?? [])
+-    setIsLoading(false)
+-  }
+-
+-  useEffect(() => { fetchCategories() }, [])
+-
+-  function openCreate() {
+-    setEditingId(null)
+-    setName('')
+-    setSlug('')
+-    setDialogOpen(true)
+-  }
+-
+-  function openEdit(cat: Category) {
+-    setEditingId(cat.id)
+-    setName(cat.name)
+-    setSlug(cat.slug)
+-    setDialogOpen(true)
+-  }
+-
+-  async function handleSave() {
+-    if (!name.trim()) { toast.error('Name is required'); return }
+-    setSaving(true)
+-    const finalSlug = slug || generateSlug(name)
+-
+-    if (editingId) {
+-      const { error } = await supabase.from('categories').update({ name: name.trim(), slug: finalSlug }).eq('id', editingId)
+-      if (error) toast.error(error.message)
+-      else toast.success('Category updated!')
+-    } else {
+-      const { error } = await supabase.from('categories').insert({ name: name.trim(), slug: finalSlug })
+-      if (error) toast.error(error.message)
+-      else toast.success('Category created!')
+-    }
+-
+-    setSaving(false)
+-    setDialogOpen(false)
+-    fetchCategories()
+-  }
+-
+-  async function handleDelete(id: string, name: string) {
+-    if (!confirm(`Delete category "${name}"? Products in this category will lose their category.`)) return
+-    const { error } = await supabase.from('categories').delete().eq('id', id)
+-    if (error) toast.error(error.message)
+-    else { toast.success('Category deleted'); fetchCategories() }
+-  }
+-
+-  return (
+-    <div className="space-y-6">
+-      <div className="flex flex-wrap items-center justify-between gap-4">
+-        <div>
+-          <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Categories</h1>
+-          <p className="text-sm text-muted-foreground mt-1">{categories.length} categories</p>
+-        </div>
+-        <Button onClick={openCreate} className="gap-2" style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}>
+-          <Plus className="h-4 w-4" /> Add Category
+-        </Button>
+-      </div>
+-
+-      <div className="rounded-xl border bg-card overflow-hidden">
+-        <Table>
+-          <TableHeader>
+-            <TableRow>
+-              <TableHead>Name</TableHead>
+-              <TableHead>Slug</TableHead>
+-              <TableHead>Created</TableHead>
+-              <TableHead className="text-right">Actions</TableHead>
+-            </TableRow>
+-          </TableHeader>
+-          <TableBody>
+-            {isLoading ? (
+-              Array.from({ length: 4 }).map((_, i) => (
+-                <TableRow key={i}>
+-                  {Array.from({ length: 4 }).map((_, j) => (
+-                    <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+-                  ))}
+-                </TableRow>
+-              ))
+-            ) : categories.length === 0 ? (
+-              <TableRow>
+-                <TableCell colSpan={4} className="py-12 text-center text-muted-foreground">
+-                  No categories yet. Create one to start organizing products.
+-                </TableCell>
+-              </TableRow>
+-            ) : (
+-              categories.map((cat) => (
+-                <TableRow key={cat.id}>
+-                  <TableCell className="font-medium">{cat.name}</TableCell>
+-                  <TableCell className="font-mono text-sm text-muted-foreground">{cat.slug}</TableCell>
+-                  <TableCell className="text-sm text-muted-foreground">
+-                    {new Date(cat.created_at).toLocaleDateString('en-IN')}
+-                  </TableCell>
+-                  <TableCell>
+-                    <div className="flex items-center justify-end gap-1">
+-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(cat)}>
+-                        <Pencil className="h-3.5 w-3.5" />
+-                      </Button>
+-                      <Button
+-                        variant="ghost"
+-                        size="icon"
+-                        className="h-8 w-8 text-muted-foreground hover:text-destructive"
+-                        onClick={() => handleDelete(cat.id, cat.name)}
+-                      >
+-                        <Trash2 className="h-3.5 w-3.5" />
+-                      </Button>
+-                    </div>
+-                  </TableCell>
+-                </TableRow>
+-              ))
+-            )}
+-          </TableBody>
+-        </Table>
+-      </div>
+-
+-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+-        <DialogContent className="max-w-md">
+-          <DialogHeader>
+-            <DialogTitle style={{ fontFamily: 'var(--font-heading)' }}>
+-              {editingId ? 'Edit Category' : 'Add Category'}
+-            </DialogTitle>
+-          </DialogHeader>
+-          <div className="space-y-4 py-4">
+-            <div className="space-y-2">
+-              <Label>Name *</Label>
+-              <Input
+-                value={name}
+-                onChange={(e) => {
+-                  setName(e.target.value)
+-                  if (!editingId) setSlug(generateSlug(e.target.value))
+-                }}
+-                placeholder="e.g. Electronics"
+-              />
+-            </div>
+-            <div className="space-y-2">
+-              <Label>Slug</Label>
+-              <Input
+-                value={slug}
+-                onChange={(e) => setSlug(e.target.value)}
+-                placeholder="auto-generated"
+-              />
+-              <p className="text-xs text-muted-foreground">Used in URLs. Auto-generated from name.</p>
+-            </div>
+-          </div>
+-          <DialogFooter>
+-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+-            <Button onClick={handleSave} disabled={saving} style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}>
+-              {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Category'}
+-            </Button>
+-          </DialogFooter>
+-        </DialogContent>
+-      </Dialog>
+-    </div>
+-  )
+-}
+diff --git a/src/pages/admin/AdminDashboardPage.tsx b/src/pages/admin/AdminDashboardPage.tsx
+deleted file mode 100644
+index dcb1f1f..0000000
+--- a/src/pages/admin/AdminDashboardPage.tsx
++++ /dev/null
+@@ -1,153 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { ShoppingBag, Package, Users, TrendingUp, ArrowUpRight } from 'lucide-react'
+-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+-import { supabase, formatINR } from '@/lib/supabase'
+-
+-interface Stats {
+-  totalOrders: number
+-  totalRevenuePaise: number
+-  totalProducts: number
+-  totalUsers: number
+-  recentOrders: Array<{
+-    id: string
+-    created_at: string
+-    total_paise: number
+-    status: string
+-    profiles: { full_name: string | null } | null
+-  }>
+-}
+-
+-export function AdminDashboardPage() {
+-  const [stats, setStats] = useState<Stats | null>(null)
+-  const [isLoading, setIsLoading] = useState(true)
+-
+-  useEffect(() => {
+-    async function fetchStats() {
+-      const [orders, products, profiles, recentOrders] = await Promise.all([
+-        supabase.from('orders').select('total_paise, status', { count: 'exact' }),
+-        supabase.from('products').select('id', { count: 'exact' }),
+-        supabase.from('profiles').select('user_id', { count: 'exact' }),
+-        supabase
+-          .from('orders')
+-          .select('id, created_at, total_paise, status, user_id')
+-          .order('created_at', { ascending: false })
+-          .limit(5),
+-      ])
+-
+-      const paidOrders = orders.data?.filter(o => o.status === 'PAID' || o.status === 'FULFILLED') ?? []
+-      const totalRevenuePaise = paidOrders.reduce((s, o) => s + o.total_paise, 0)
+-
+-      setStats({
+-        totalOrders: orders.count ?? 0,
+-        totalRevenuePaise,
+-        totalProducts: products.count ?? 0,
+-        totalUsers: profiles.count ?? 0,
+-        recentOrders: (recentOrders.data ?? []).map(o => ({ ...o, profiles: null })),
+-      })
+-      setIsLoading(false)
+-    }
+-    fetchStats()
+-  }, [])
+-
+-  const statCards = [
+-    {
+-      title: 'Total Revenue',
+-      value: stats ? formatINR(stats.totalRevenuePaise) : '—',
+-      icon: TrendingUp,
+-      color: 'text-green-600',
+-      bg: 'bg-green-50',
+-    },
+-    {
+-      title: 'Total Orders',
+-      value: stats?.totalOrders ?? '—',
+-      icon: ShoppingBag,
+-      color: 'text-blue-600',
+-      bg: 'bg-blue-50',
+-    },
+-    {
+-      title: 'Products',
+-      value: stats?.totalProducts ?? '—',
+-      icon: Package,
+-      color: 'text-orange-600',
+-      bg: 'bg-orange-50',
+-    },
+-    {
+-      title: 'Customers',
+-      value: stats?.totalUsers ?? '—',
+-      icon: Users,
+-      color: 'text-purple-600',
+-      bg: 'bg-purple-50',
+-    },
+-  ]
+-
+-  return (
+-    <div className="space-y-6">
+-      <div>
+-        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Dashboard</h1>
+-        <p className="text-muted-foreground text-sm mt-1">Welcome to ShopFlow Admin</p>
+-      </div>
+-
+-      {/* Stat cards */}
+-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+-        {statCards.map((card) => (
+-          <Card key={card.title}>
+-            <CardContent className="pt-6">
+-              <div className="flex items-start justify-between">
+-                <div>
+-                  <p className="text-sm text-muted-foreground">{card.title}</p>
+-                  <p className={`text-2xl font-bold mt-1 price-inr`} style={{ fontFamily: 'var(--font-heading)' }}>
+-                    {isLoading ? <span className="block h-7 w-24 bg-muted rounded animate-pulse" /> : card.value}
+-                  </p>
+-                </div>
+-                <div className={`rounded-lg p-2 ${card.bg}`}>
+-                  <card.icon className={`h-5 w-5 ${card.color}`} />
+-                </div>
+-              </div>
+-            </CardContent>
+-          </Card>
+-        ))}
+-      </div>
+-
+-      {/* Recent orders */}
+-      <Card>
+-        <CardHeader className="flex flex-row items-center justify-between pb-3">
+-          <CardTitle className="text-base" style={{ fontFamily: 'var(--font-heading)' }}>Recent Orders</CardTitle>
+-          <a href="/admin/orders" className="text-sm text-secondary flex items-center gap-1 hover:underline">
+-            View all <ArrowUpRight className="h-3.5 w-3.5" />
+-          </a>
+-        </CardHeader>
+-        <CardContent>
+-          {isLoading ? (
+-            <div className="space-y-3">
+-              {Array.from({ length: 5 }).map((_, i) => (
+-                <div key={i} className="h-10 bg-muted rounded animate-pulse" />
+-              ))}
+-            </div>
+-          ) : (stats?.recentOrders.length ?? 0) === 0 ? (
+-            <p className="text-muted-foreground text-sm py-4 text-center">No orders yet</p>
+-          ) : (
+-            <div className="space-y-3">
+-              {stats?.recentOrders.map((order) => (
+-                <div key={order.id} className="flex items-center justify-between text-sm border-b pb-3 last:border-0 last:pb-0">
+-                  <div>
+-                    <p className="font-mono text-xs text-muted-foreground">#{order.id.slice(0, 8)}...</p>
+-                    <p className="text-xs text-muted-foreground">
+-                      {new Date(order.created_at).toLocaleDateString('en-IN')}
+-                    </p>
+-                  </div>
+-                  <div className="text-right">
+-                    <p className="font-semibold price-inr">{formatINR(order.total_paise)}</p>
+-                    <span className={`text-xs font-medium ${
+-                      order.status === 'PAID' || order.status === 'FULFILLED' ? 'text-green-600' :
+-                      order.status === 'CREATED' ? 'text-blue-600' : 'text-red-600'
+-                    }`}>{order.status}</span>
+-                  </div>
+-                </div>
+-              ))}
+-            </div>
+-          )}
+-        </CardContent>
+-      </Card>
+-    </div>
+-  )
+-}
+diff --git a/src/pages/admin/AdminInventoryPage.tsx b/src/pages/admin/AdminInventoryPage.tsx
+deleted file mode 100644
+index 92dc8fa..0000000
+--- a/src/pages/admin/AdminInventoryPage.tsx
++++ /dev/null
+@@ -1,159 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { Save, Search } from 'lucide-react'
+-import { Button } from '@/components/ui/button'
+-import { Input } from '@/components/ui/input'
+-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+-import { supabase, formatINR } from '@/lib/supabase'
+-import { toast } from 'react-hot-toast'
+-
+-interface InventoryRow {
+-  id: string
+-  title: string
+-  slug: string
+-  price_paise: number
+-  status: string
+-  stock: number
+-  newStock?: string
+-}
+-
+-export function AdminInventoryPage() {
+-  const [items, setItems] = useState<InventoryRow[]>([])
+-  const [isLoading, setIsLoading] = useState(true)
+-  const [searchQ, setSearchQ] = useState('')
+-  const [saving, setSaving] = useState<string | null>(null)
+-
+-  async function fetchInventory() {
+-    const { data } = await supabase
+-      .from('products')
+-      .select('id, title, slug, price_paise, status, inventory(stock)')
+-      .neq('status', 'ARCHIVED')
+-      .order('title')
+-    const rows: InventoryRow[] = (data ?? []).map((p: any) => ({
+-      id: p.id,
+-      title: p.title,
+-      slug: p.slug,
+-      price_paise: p.price_paise,
+-      status: p.status,
+-      stock: p.inventory?.stock ?? 0,
+-      newStock: undefined,
+-    }))
+-    setItems(rows)
+-    setIsLoading(false)
+-  }
+-
+-  useEffect(() => { fetchInventory() }, [])
+-
+-  function updateNewStock(id: string, value: string) {
+-    setItems(items => items.map(i => i.id === id ? { ...i, newStock: value } : i))
+-  }
+-
+-  async function saveStock(item: InventoryRow) {
+-    if (item.newStock === undefined || item.newStock === '') return
+-    const newVal = parseInt(item.newStock, 10)
+-    if (isNaN(newVal) || newVal < 0) { toast.error('Invalid stock value'); return }
+-    setSaving(item.id)
+-    const { error } = await supabase
+-      .from('inventory')
+-      .upsert({ product_id: item.id, stock: newVal, updated_at: new Date().toISOString() })
+-    if (error) toast.error(error.message)
+-    else {
+-      toast.success(`Stock updated for ${item.title}`)
+-      setItems(items => items.map(i => i.id === item.id ? { ...i, stock: newVal, newStock: undefined } : i))
+-    }
+-    setSaving(null)
+-  }
+-
+-  const filtered = items.filter(i => i.title.toLowerCase().includes(searchQ.toLowerCase()))
+-
+-  return (
+-    <div className="space-y-6">
+-      <div>
+-        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Inventory</h1>
+-        <p className="text-sm text-muted-foreground mt-1">Manage stock levels for all products</p>
+-      </div>
+-
+-      <div className="relative">
+-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+-        <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search products..." className="pl-9 max-w-sm" />
+-      </div>
+-
+-      <div className="rounded-xl border bg-card overflow-hidden">
+-        <Table>
+-          <TableHeader>
+-            <TableRow>
+-              <TableHead>Product</TableHead>
+-              <TableHead>Price</TableHead>
+-              <TableHead>Status</TableHead>
+-              <TableHead>Current Stock</TableHead>
+-              <TableHead>New Stock</TableHead>
+-              <TableHead className="text-right">Save</TableHead>
+-            </TableRow>
+-          </TableHeader>
+-          <TableBody>
+-            {isLoading ? (
+-              Array.from({ length: 5 }).map((_, i) => (
+-                <TableRow key={i}>
+-                  {Array.from({ length: 6 }).map((_, j) => (
+-                    <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+-                  ))}
+-                </TableRow>
+-              ))
+-            ) : filtered.length === 0 ? (
+-              <TableRow>
+-                <TableCell colSpan={6} className="py-12 text-center text-muted-foreground">
+-                  No products found
+-                </TableCell>
+-              </TableRow>
+-            ) : (
+-              filtered.map((item) => (
+-                <TableRow key={item.id}>
+-                  <TableCell>
+-                    <p className="font-medium text-sm">{item.title}</p>
+-                    <p className="text-xs text-muted-foreground font-mono">{item.slug}</p>
+-                  </TableCell>
+-                  <TableCell className="font-semibold text-sm price-inr">{formatINR(item.price_paise)}</TableCell>
+-                  <TableCell>
+-                    <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
+-                      item.status === 'ACTIVE' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+-                    }`}>
+-                      {item.status}
+-                    </span>
+-                  </TableCell>
+-                  <TableCell>
+-                    <span className={`font-bold text-sm ${item.stock === 0 ? 'text-red-600' : item.stock <= 5 ? 'text-orange-600' : 'text-green-600'}`}>
+-                      {item.stock}
+-                    </span>
+-                  </TableCell>
+-                  <TableCell>
+-                    <Input
+-                      type="number"
+-                      min="0"
+-                      className="w-24 h-8"
+-                      placeholder={String(item.stock)}
+-                      value={item.newStock ?? ''}
+-                      onChange={(e) => updateNewStock(item.id, e.target.value)}
+-                      onKeyDown={(e) => { if (e.key === 'Enter') saveStock(item) }}
+-                    />
+-                  </TableCell>
+-                  <TableCell className="text-right">
+-                    <Button
+-                      variant={item.newStock !== undefined && item.newStock !== '' ? 'default' : 'ghost'}
+-                      size="sm"
+-                      className="gap-1.5 h-8"
+-                      disabled={saving === item.id || !item.newStock}
+-                      onClick={() => saveStock(item)}
+-                      style={item.newStock !== undefined && item.newStock !== '' ? { backgroundColor: 'hsl(var(--secondary))', color: 'white' } : {}}
+-                    >
+-                      <Save className="h-3.5 w-3.5" />
+-                      {saving === item.id ? 'Saving...' : 'Save'}
+-                    </Button>
+-                  </TableCell>
+-                </TableRow>
+-              ))
+-            )}
+-          </TableBody>
+-        </Table>
+-      </div>
+-    </div>
+-  )
+-}
+diff --git a/src/pages/admin/AdminOrdersPage.tsx b/src/pages/admin/AdminOrdersPage.tsx
+deleted file mode 100644
+index cfbb7d7..0000000
+--- a/src/pages/admin/AdminOrdersPage.tsx
++++ /dev/null
+@@ -1,184 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { Search, ChevronRight } from 'lucide-react'
+-import { Input } from '@/components/ui/input'
+-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+-import { Badge } from '@/components/ui/badge'
+-import { Separator } from '@/components/ui/separator'
+-import { Button } from '@/components/ui/button'
+-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+-import { supabase, formatINR } from '@/lib/supabase'
+-import { OrderStatusBadge, PaymentStatusBadge } from '@/components/shared/OrderStatusBadge'
+-import type { OrderWithItems } from '@/lib/database.types'
+-
+-interface OrderWithProfile extends OrderWithItems {
+-  profiles?: { full_name: string | null; phone: string | null } | null
+-}
+-
+-export function AdminOrdersPage() {
+-  const [orders, setOrders] = useState<OrderWithProfile[]>([])
+-  const [isLoading, setIsLoading] = useState(true)
+-  const [searchQ, setSearchQ] = useState('')
+-  const [statusFilter, setStatusFilter] = useState('ALL')
+-  const [selectedOrder, setSelectedOrder] = useState<OrderWithProfile | null>(null)
+-
+-  async function fetchOrders() {
+-    const { data } = await supabase
+-      .from('orders')
+-      .select('*, order_items(*), profiles(full_name, phone)')
+-      .order('created_at', { ascending: false })
+-      .limit(100)
+-    setOrders((data as OrderWithProfile[]) ?? [])
+-    setIsLoading(false)
+-  }
+-
+-  useEffect(() => { fetchOrders() }, [])
+-
+-  const filtered = orders.filter(o => {
+-    const matchSearch = o.id.includes(searchQ) || (o.profiles?.full_name?.toLowerCase().includes(searchQ.toLowerCase()) ?? false)
+-    const matchStatus = statusFilter === 'ALL' || o.status === statusFilter
+-    return matchSearch && matchStatus
+-  })
+-
+-  return (
+-    <div className="space-y-6">
+-      <div>
+-        <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Orders</h1>
+-        <p className="text-sm text-muted-foreground mt-1">{orders.length} total orders</p>
+-      </div>
+-
+-      <div className="flex flex-wrap items-center gap-3">
+-        <div className="relative flex-1 min-w-[200px] max-w-xs">
+-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+-          <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search by ID or name..." className="pl-9" />
+-        </div>
+-        <Select value={statusFilter} onValueChange={setStatusFilter}>
+-          <SelectTrigger className="w-[160px]">
+-            <SelectValue />
+-          </SelectTrigger>
+-          <SelectContent>
+-            <SelectItem value="ALL">All Statuses</SelectItem>
+-            <SelectItem value="CREATED">Created</SelectItem>
+-            <SelectItem value="PAID">Paid</SelectItem>
+-            <SelectItem value="FAILED">Failed</SelectItem>
+-            <SelectItem value="CANCELLED">Cancelled</SelectItem>
+-            <SelectItem value="FULFILLED">Fulfilled</SelectItem>
+-          </SelectContent>
+-        </Select>
+-      </div>
+-
+-      <div className="rounded-xl border bg-card overflow-hidden">
+-        <Table>
+-          <TableHeader>
+-            <TableRow>
+-              <TableHead>Order ID</TableHead>
+-              <TableHead>Customer</TableHead>
+-              <TableHead>Date</TableHead>
+-              <TableHead>Total</TableHead>
+-              <TableHead>Payment</TableHead>
+-              <TableHead>Status</TableHead>
+-              <TableHead>Payment Status</TableHead>
+-              <TableHead></TableHead>
+-            </TableRow>
+-          </TableHeader>
+-          <TableBody>
+-            {isLoading ? (
+-              Array.from({ length: 5 }).map((_, i) => (
+-                <TableRow key={i}>
+-                  {Array.from({ length: 8 }).map((_, j) => (
+-                    <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+-                  ))}
+-                </TableRow>
+-              ))
+-            ) : filtered.length === 0 ? (
+-              <TableRow>
+-                <TableCell colSpan={8} className="py-12 text-center text-muted-foreground">
+-                  No orders found
+-                </TableCell>
+-              </TableRow>
+-            ) : (
+-              filtered.map((order) => (
+-                <TableRow key={order.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setSelectedOrder(order)}>
+-                  <TableCell className="font-mono text-xs">{order.id.slice(0, 8)}...</TableCell>
+-                  <TableCell className="text-sm">{order.profiles?.full_name || <span className="text-muted-foreground">—</span>}</TableCell>
+-                  <TableCell className="text-sm text-muted-foreground">
+-                    {new Date(order.created_at).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
+-                  </TableCell>
+-                  <TableCell className="font-semibold price-inr text-sm">{formatINR(order.total_paise)}</TableCell>
+-                  <TableCell>
+-                    <Badge variant="outline" className="text-xs">{order.payment_method}</Badge>
+-                  </TableCell>
+-                  <TableCell><OrderStatusBadge status={order.status as any} /></TableCell>
+-                  <TableCell><PaymentStatusBadge status={order.payment_status as any} /></TableCell>
+-                  <TableCell>
+-                    <ChevronRight className="h-4 w-4 text-muted-foreground" />
+-                  </TableCell>
+-                </TableRow>
+-              ))
+-            )}
+-          </TableBody>
+-        </Table>
+-      </div>
+-
+-      {/* Order detail dialog */}
+-      <Dialog open={!!selectedOrder} onOpenChange={() => setSelectedOrder(null)}>
+-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+-          {selectedOrder && (
+-            <>
+-              <DialogHeader>
+-                <DialogTitle style={{ fontFamily: 'var(--font-heading)' }}>Order Details</DialogTitle>
+-              </DialogHeader>
+-              <div className="space-y-4">
+-                <div className="grid grid-cols-2 gap-4 text-sm">
+-                  <div>
+-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Order ID</p>
+-                    <p className="font-mono mt-1 break-all">{selectedOrder.id}</p>
+-                  </div>
+-                  <div>
+-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Date</p>
+-                    <p className="mt-1">{new Date(selectedOrder.created_at).toLocaleString('en-IN')}</p>
+-                  </div>
+-                  <div>
+-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Customer</p>
+-                    <p className="mt-1">{selectedOrder.profiles?.full_name || '—'}</p>
+-                    {selectedOrder.profiles?.phone && <p className="text-xs text-muted-foreground">{selectedOrder.profiles.phone}</p>}
+-                  </div>
+-                  <div>
+-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Payment Method</p>
+-                    <p className="mt-1">{selectedOrder.payment_method}</p>
+-                  </div>
+-                  <div>
+-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Order Status</p>
+-                    <div className="mt-1"><OrderStatusBadge status={selectedOrder.status as any} /></div>
+-                  </div>
+-                  <div>
+-                    <p className="text-muted-foreground text-xs uppercase tracking-wide">Payment Status</p>
+-                    <div className="mt-1"><PaymentStatusBadge status={selectedOrder.payment_status as any} /></div>
+-                  </div>
+-                </div>
+-
+-                <Separator />
+-
+-                <div>
+-                  <h3 className="font-semibold text-sm mb-3" style={{ fontFamily: 'var(--font-heading)' }}>Items</h3>
+-                  <div className="space-y-2">
+-                    {selectedOrder.order_items.map((item) => (
+-                      <div key={item.id} className="flex justify-between text-sm py-2 border-b last:border-0">
+-                        <span className="font-medium">{item.title_snapshot} × {item.qty}</span>
+-                        <span className="font-semibold price-inr">{formatINR(item.price_paise_snapshot * item.qty)}</span>
+-                      </div>
+-                    ))}
+-                  </div>
+-                  <div className="flex justify-between font-bold mt-3 pt-3 border-t">
+-                    <span>Total</span>
+-                    <span className="price-inr">{formatINR(selectedOrder.total_paise)}</span>
+-                  </div>
+-                </div>
+-              </div>
+-            </>
+-          )}
+-        </DialogContent>
+-      </Dialog>
+-    </div>
+-  )
+-}
+diff --git a/src/pages/admin/AdminProductsPage.tsx b/src/pages/admin/AdminProductsPage.tsx
+deleted file mode 100644
+index f13a40f..0000000
+--- a/src/pages/admin/AdminProductsPage.tsx
++++ /dev/null
+@@ -1,366 +0,0 @@
+-import { useEffect, useState } from 'react'
+-import { Plus, Pencil, Archive, Search, ExternalLink } from 'lucide-react'
+-import { Button } from '@/components/ui/button'
+-import { Input } from '@/components/ui/input'
+-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+-import { Label } from '@/components/ui/label'
+-import { Textarea } from '@/components/ui/textarea'
+-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+-import { Badge } from '@/components/ui/badge'
+-import { supabase, formatINR, rupeesToPaise, paiseTOrupees, generateSlug } from '@/lib/supabase'
+-import { ProductStatusBadge } from '@/components/shared/OrderStatusBadge'
+-import { toast } from 'react-hot-toast'
+-import type { ProductWithCategory } from '@/lib/database.types'
+-
+-interface Category { id: string; name: string; slug: string }
+-
+-interface ProductFormData {
+-  title: string
+-  slug: string
+-  description: string
+-  price_rupees: string
+-  status: string
+-  visibility: string
+-  category_id: string
+-  image_url: string
+-  stock: string
+-}
+-
+-const defaultForm: ProductFormData = {
+-  title: '', slug: '', description: '', price_rupees: '',
+-  status: 'DRAFT', visibility: 'HIDDEN', category_id: '', image_url: '', stock: '0',
+-}
+-
+-export function AdminProductsPage() {
+-  const [products, setProducts] = useState<ProductWithCategory[]>([])
+-  const [categories, setCategories] = useState<Category[]>([])
+-  const [isLoading, setIsLoading] = useState(true)
+-  const [searchQ, setSearchQ] = useState('')
+-  const [dialogOpen, setDialogOpen] = useState(false)
+-  const [editingId, setEditingId] = useState<string | null>(null)
+-  const [form, setForm] = useState<ProductFormData>(defaultForm)
+-  const [saving, setSaving] = useState(false)
+-
+-  async function fetchProducts() {
+-    const { data } = await supabase
+-      .from('products')
+-      .select('*, categories(*), inventory(stock)')
+-      .order('created_at', { ascending: false })
+-    setProducts((data as ProductWithCategory[]) ?? [])
+-    setIsLoading(false)
+-  }
+-
+-  useEffect(() => {
+-    fetchProducts()
+-    supabase.from('categories').select('*').order('name').then(({ data }) => setCategories(data ?? []))
+-  }, [])
+-
+-  function openCreate() {
+-    setEditingId(null)
+-    setForm(defaultForm)
+-    setDialogOpen(true)
+-  }
+-
+-  function openEdit(product: ProductWithCategory) {
+-    setEditingId(product.id)
+-    setForm({
+-      title: product.title,
+-      slug: product.slug,
+-      description: product.description || '',
+-      price_rupees: String(paiseTOrupees(product.price_paise)),
+-      status: product.status,
+-      visibility: product.visibility,
+-      category_id: product.category_id || '',
+-      image_url: product.image_url || '',
+-      stock: String(product.inventory?.stock ?? 0),
+-    })
+-    setDialogOpen(true)
+-  }
+-
+-  async function handleSave() {
+-    if (!form.title || !form.price_rupees) {
+-      toast.error('Title and price are required')
+-      return
+-    }
+-    setSaving(true)
+-    const pricePaise = rupeesToPaise(parseFloat(form.price_rupees))
+-    const slug = form.slug || generateSlug(form.title)
+-
+-    if (editingId) {
+-      const { error } = await supabase.from('products').update({
+-        title: form.title,
+-        slug,
+-        description: form.description || null,
+-        price_paise: pricePaise,
+-        status: form.status,
+-        visibility: form.visibility,
+-        category_id: form.category_id || null,
+-        image_url: form.image_url || null,
+-        updated_at: new Date().toISOString(),
+-      }).eq('id', editingId)
+-
+-      if (!error) {
+-        // Update inventory
+-        await supabase.from('inventory').upsert({
+-          product_id: editingId,
+-          stock: parseInt(form.stock, 10),
+-          updated_at: new Date().toISOString(),
+-        })
+-        toast.success('Product updated!')
+-      } else {
+-        toast.error(error.message)
+-      }
+-    } else {
+-      const { data, error } = await supabase.from('products').insert({
+-        title: form.title,
+-        slug,
+-        description: form.description || null,
+-        price_paise: pricePaise,
+-        status: form.status,
+-        visibility: form.visibility,
+-        category_id: form.category_id || null,
+-        image_url: form.image_url || null,
+-      }).select().single()
+-
+-      if (!error && data) {
+-        await supabase.from('inventory').insert({
+-          product_id: data.id,
+-          stock: parseInt(form.stock, 10),
+-        })
+-        toast.success('Product created!')
+-      } else {
+-        toast.error(error?.message ?? 'Failed to create product')
+-      }
+-    }
+-
+-    setSaving(false)
+-    setDialogOpen(false)
+-    fetchProducts()
+-  }
+-
+-  async function handleArchive(productId: string) {
+-    await supabase.from('products').update({ status: 'ARCHIVED' }).eq('id', productId)
+-    toast.success('Product archived')
+-    fetchProducts()
+-  }
+-
+-  const filtered = products.filter(p =>
+-    p.title.toLowerCase().includes(searchQ.toLowerCase())
+-  )
+-
+-  return (
+-    <div className="space-y-6">
+-      <div className="flex flex-wrap items-center justify-between gap-4">
+-        <div>
+-          <h1 className="text-2xl font-bold" style={{ fontFamily: 'var(--font-heading)' }}>Products</h1>
+-          <p className="text-sm text-muted-foreground mt-1">{products.length} total products</p>
+-        </div>
+-        <Button onClick={openCreate} className="gap-2" style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}>
+-          <Plus className="h-4 w-4" /> Add Product
+-        </Button>
+-      </div>
+-
+-      <div className="relative">
+-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+-        <Input value={searchQ} onChange={(e) => setSearchQ(e.target.value)} placeholder="Search products..." className="pl-9 max-w-sm" />
+-      </div>
+-
+-      <div className="rounded-xl border bg-card overflow-hidden">
+-        <Table>
+-          <TableHeader>
+-            <TableRow>
+-              <TableHead>Product</TableHead>
+-              <TableHead>Category</TableHead>
+-              <TableHead>Price</TableHead>
+-              <TableHead>Stock</TableHead>
+-              <TableHead>Status</TableHead>
+-              <TableHead>Visibility</TableHead>
+-              <TableHead className="text-right">Actions</TableHead>
+-            </TableRow>
+-          </TableHeader>
+-          <TableBody>
+-            {isLoading ? (
+-              Array.from({ length: 5 }).map((_, i) => (
+-                <TableRow key={i}>
+-                  {Array.from({ length: 7 }).map((_, j) => (
+-                    <TableCell key={j}><div className="h-4 bg-muted rounded animate-pulse" /></TableCell>
+-                  ))}
+-                </TableRow>
+-              ))
+-            ) : filtered.length === 0 ? (
+-              <TableRow>
+-                <TableCell colSpan={7} className="py-12 text-center text-muted-foreground">
+-                  No products found
+-                </TableCell>
+-              </TableRow>
+-            ) : (
+-              filtered.map((product) => (
+-                <TableRow key={product.id}>
+-                  <TableCell>
+-                    <div className="flex items-center gap-3">
+-                      <div className="h-9 w-9 rounded-lg overflow-hidden bg-muted shrink-0">
+-                        {product.image_url ? (
+-                          <img src={product.image_url} alt={product.title} className="h-full w-full object-cover" />
+-                        ) : null}
+-                      </div>
+-                      <div className="min-w-0">
+-                        <p className="font-medium text-sm truncate max-w-[180px]">{product.title}</p>
+-                        <p className="text-xs text-muted-foreground font-mono">{product.slug}</p>
+-                      </div>
+-                    </div>
+-                  </TableCell>
+-                  <TableCell className="text-sm text-muted-foreground">{product.categories?.name || '—'}</TableCell>
+-                  <TableCell className="font-semibold text-sm price-inr">{formatINR(product.price_paise)}</TableCell>
+-                  <TableCell>
+-                    <span className={`text-sm font-medium ${(product.inventory?.stock ?? 0) === 0 ? 'text-red-600' : 'text-green-600'}`}>
+-                      {product.inventory?.stock ?? 0}
+-                    </span>
+-                  </TableCell>
+-                  <TableCell><ProductStatusBadge status={product.status} /></TableCell>
+-                  <TableCell>
+-                    <Badge variant="outline" className="text-xs">
+-                      {product.visibility}
+-                    </Badge>
+-                  </TableCell>
+-                  <TableCell>
+-                    <div className="flex items-center justify-end gap-1">
+-                      <a href={`/product/${product.slug}`} target="_blank" rel="noopener noreferrer">
+-                        <Button variant="ghost" size="icon" className="h-8 w-8" title="View product">
+-                          <ExternalLink className="h-3.5 w-3.5" />
+-                        </Button>
+-                      </a>
+-                      <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => openEdit(product)}>
+-                        <Pencil className="h-3.5 w-3.5" />
+-                      </Button>
+-                      {product.status !== 'ARCHIVED' && (
+-                        <Button
+-                          variant="ghost"
+-                          size="icon"
+-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+-                          onClick={() => handleArchive(product.id)}
+-                          title="Archive"
+-                        >
+-                          <Archive className="h-3.5 w-3.5" />
+-                        </Button>
+-                      )}
+-                    </div>
+-                  </TableCell>
+-                </TableRow>
+-              ))
+-            )}
+-          </TableBody>
+-        </Table>
+-      </div>
+-
+-      {/* Create/Edit Dialog */}
+-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+-          <DialogHeader>
+-            <DialogTitle style={{ fontFamily: 'var(--font-heading)' }}>
+-              {editingId ? 'Edit Product' : 'Add New Product'}
+-            </DialogTitle>
+-          </DialogHeader>
+-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 py-4">
+-            <div className="sm:col-span-2 space-y-2">
+-              <Label>Title *</Label>
+-              <Input
+-                value={form.title}
+-                onChange={(e) => {
+-                  setForm(f => ({ ...f, title: e.target.value, slug: !editingId ? generateSlug(e.target.value) : f.slug }))
+-                }}
+-                placeholder="Product title"
+-              />
+-            </div>
+-            <div className="space-y-2">
+-              <Label>Slug</Label>
+-              <Input
+-                value={form.slug}
+-                onChange={(e) => setForm(f => ({ ...f, slug: e.target.value }))}
+-                placeholder="auto-generated"
+-              />
+-            </div>
+-            <div className="space-y-2">
+-              <Label>Price (₹) *</Label>
+-              <Input
+-                type="number"
+-                min="0"
+-                step="0.01"
+-                value={form.price_rupees}
+-                onChange={(e) => setForm(f => ({ ...f, price_rupees: e.target.value }))}
+-                placeholder="e.g. 199.00"
+-              />
+-            </div>
+-            <div className="space-y-2">
+-              <Label>Category</Label>
+-              <Select value={form.category_id} onValueChange={(v) => setForm(f => ({ ...f, category_id: v }))}>
+-                <SelectTrigger><SelectValue placeholder="Select category" /></SelectTrigger>
+-                <SelectContent>
+-                  <SelectItem value="none">No category</SelectItem>
+-                  {categories.map(c => <SelectItem key={c.id} value={c.id}>{c.name}</SelectItem>)}
+-                </SelectContent>
+-              </Select>
+-            </div>
+-            <div className="space-y-2">
+-              <Label>Stock</Label>
+-              <Input
+-                type="number"
+-                min="0"
+-                value={form.stock}
+-                onChange={(e) => setForm(f => ({ ...f, stock: e.target.value }))}
+-              />
+-            </div>
+-            <div className="space-y-2">
+-              <Label>Status</Label>
+-              <Select value={form.status} onValueChange={(v) => setForm(f => ({ ...f, status: v }))}>
+-                <SelectTrigger><SelectValue /></SelectTrigger>
+-                <SelectContent>
+-                  <SelectItem value="DRAFT">Draft</SelectItem>
+-                  <SelectItem value="ACTIVE">Active</SelectItem>
+-                  <SelectItem value="ARCHIVED">Archived</SelectItem>
+-                </SelectContent>
+-              </Select>
+-            </div>
+-            <div className="space-y-2">
+-              <Label>Visibility</Label>
+-              <Select value={form.visibility} onValueChange={(v) => setForm(f => ({ ...f, visibility: v }))}>
+-                <SelectTrigger><SelectValue /></SelectTrigger>
+-                <SelectContent>
+-                  <SelectItem value="HIDDEN">Hidden</SelectItem>
+-                  <SelectItem value="PUBLIC">Public</SelectItem>
+-                </SelectContent>
+-              </Select>
+-            </div>
+-            <div className="sm:col-span-2 space-y-2">
+-              <Label>Image URL</Label>
+-              <Input
+-                value={form.image_url}
+-                onChange={(e) => setForm(f => ({ ...f, image_url: e.target.value }))}
+-                placeholder="https://..."
+-              />
+-            </div>
+-            <div className="sm:col-span-2 space-y-2">
+-              <Label>Description</Label>
+-              <Textarea
+-                value={form.description}
+-                onChange={(e) => setForm(f => ({ ...f, description: e.target.value }))}
+-                placeholder="Product description..."
+-                rows={3}
+-              />
+-            </div>
+-          </div>
+-          <DialogFooter>
+-            <Button variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
+-            <Button
+-              onClick={handleSave}
+-              disabled={saving}
+-              style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
+-            >
+-              {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Create Product'}
+-            </Button>
+-          </DialogFooter>
+-        </DialogContent>
+-      </Dialog>
+-    </div>
+-  )
+-}
+diff --git a/src/style.css b/src/style.css
+deleted file mode 100644
+index 3bcdbd0..0000000
+--- a/src/style.css
++++ /dev/null
+@@ -1,96 +0,0 @@
+-:root {
+-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+-  line-height: 1.5;
+-  font-weight: 400;
+-
+-  color-scheme: light dark;
+-  color: rgba(255, 255, 255, 0.87);
+-  background-color: #242424;
+-
+-  font-synthesis: none;
+-  text-rendering: optimizeLegibility;
+-  -webkit-font-smoothing: antialiased;
+-  -moz-osx-font-smoothing: grayscale;
+-}
+-
+-a {
+-  font-weight: 500;
+-  color: #646cff;
+-  text-decoration: inherit;
+-}
+-a:hover {
+-  color: #535bf2;
+-}
+-
+-body {
+-  margin: 0;
+-  display: flex;
+-  place-items: center;
+-  min-width: 320px;
+-  min-height: 100vh;
+-}
+-
+-h1 {
+-  font-size: 3.2em;
+-  line-height: 1.1;
+-}
+-
+-#app {
+-  max-width: 1280px;
+-  margin: 0 auto;
+-  padding: 2rem;
+-  text-align: center;
+-}
+-
+-.logo {
+-  height: 6em;
+-  padding: 1.5em;
+-  will-change: filter;
+-  transition: filter 300ms;
+-}
+-.logo:hover {
+-  filter: drop-shadow(0 0 2em #646cffaa);
+-}
+-.logo.vanilla:hover {
+-  filter: drop-shadow(0 0 2em #3178c6aa);
+-}
+-
+-.card {
+-  padding: 2em;
+-}
+-
+-.read-the-docs {
+-  color: #888;
+-}
+-
+-button {
+-  border-radius: 8px;
+-  border: 1px solid transparent;
+-  padding: 0.6em 1.2em;
+-  font-size: 1em;
+-  font-weight: 500;
+-  font-family: inherit;
+-  background-color: #1a1a1a;
+-  cursor: pointer;
+-  transition: border-color 0.25s;
+-}
+-button:hover {
+-  border-color: #646cff;
+-}
+-button:focus,
+-button:focus-visible {
+-  outline: 4px auto -webkit-focus-ring-color;
+-}
+-
+-@media (prefers-color-scheme: light) {
+-  :root {
+-    color: #213547;
+-    background-color: #ffffff;
+-  }
+-  a:hover {
+-    color: #747bff;
+-  }
+-  button {
+-    background-color: #f9f9f9;
+-  }
+-}
+diff --git a/src/typescript.svg b/src/typescript.svg
+deleted file mode 100644
+index d91c910..0000000
+--- a/src/typescript.svg
++++ /dev/null
+@@ -1 +0,0 @@
+-<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" aria-hidden="true" role="img" class="iconify iconify--logos" width="32" height="32" preserveAspectRatio="xMidYMid meet" viewBox="0 0 256 256"><path fill="#007ACC" d="M0 128v128h256V0H0z"></path><path fill="#FFF" d="m56.612 128.85l-.081 10.483h33.32v94.68h23.568v-94.68h33.321v-10.28c0-5.69-.122-10.444-.284-10.566c-.122-.162-20.4-.244-44.983-.203l-44.74.122l-.121 10.443Zm149.955-10.742c6.501 1.625 11.459 4.51 16.01 9.224c2.357 2.52 5.851 7.111 6.136 8.208c.08.325-11.053 7.802-17.798 11.988c-.244.162-1.22-.894-2.317-2.52c-3.291-4.795-6.745-6.867-12.028-7.233c-7.76-.528-12.759 3.535-12.718 10.321c0 1.992.284 3.17 1.097 4.795c1.707 3.536 4.876 5.649 14.832 9.956c18.326 7.883 26.168 13.084 31.045 20.48c5.445 8.249 6.664 21.415 2.966 31.208c-4.063 10.646-14.14 17.879-28.323 20.276c-4.388.772-14.79.65-19.504-.203c-10.28-1.828-20.033-6.908-26.047-13.572c-2.357-2.6-6.949-9.387-6.664-9.874c.122-.163 1.178-.813 2.356-1.504c1.138-.65 5.446-3.129 9.509-5.485l7.355-4.267l1.544 2.276c2.154 3.29 6.867 7.801 9.712 9.305c8.167 4.307 19.383 3.698 24.909-1.26c2.357-2.153 3.332-4.388 3.332-7.68c0-2.966-.366-4.266-1.91-6.501c-1.99-2.845-6.054-5.242-17.595-10.24c-13.206-5.69-18.895-9.224-24.096-14.832c-3.007-3.25-5.852-8.452-7.03-12.8c-.975-3.617-1.22-12.678-.447-16.335c2.723-12.76 12.353-21.659 26.25-24.3c4.51-.853 14.994-.528 19.424.569Z"></path></svg>
+\ No newline at end of file
+-- 
+2.43.0
+
