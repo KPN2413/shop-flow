@@ -35,6 +35,7 @@ import { AdminProducts } from './pages/admin/AdminProducts'
 import { AdminCategories } from './pages/admin/AdminCategories'
 import { AdminInventory } from './pages/admin/AdminInventory'
 import { AdminOrders } from './pages/admin/AdminOrders'
+import { AdminSeedPage } from './pages/admin/AdminSeedPage'
 
 import { Analytics } from '@vercel/analytics/react';
 
@@ -180,6 +181,12 @@ const adminOrdersRoute = createRoute({
   component: AdminOrders,
 })
 
+const adminSeedRoute = createRoute({
+  getParentRoute: () => adminRootRoute,
+  path: '/seed',
+  component: AdminSeedPage,
+})
+
 const routeTree = rootRoute.addChildren([
   storeLayoutRoute.addChildren([
     indexRoute,
@@ -200,6 +207,7 @@ const routeTree = rootRoute.addChildren([
     adminCategoriesRoute,
     adminInventoryRoute,
     adminOrdersRoute,
+    adminSeedRoute,
   ]),
 ])
 
@@ -220,4 +228,4 @@ export default function App() {
       </CartProvider>
     </AuthProvider>
   )
-}
+} 
