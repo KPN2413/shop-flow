@@ -15,6 +15,7 @@ import { Footer } from './components/layout/Footer'
 // Public pages
 import { HomePage } from './pages/HomePage'
 import { ShopPage } from './pages/ShopPage'
+import { CategoriesPage } from './pages/CategoriesPage'
 import { ProductPage } from './pages/ProductPage'
 import { CartPage } from './pages/CartPage'
 import { CheckoutPage } from './pages/CheckoutPage'
@@ -86,6 +87,12 @@ const shopRoute = createRoute({
     q: search.q as string | undefined,
     category: search.category as string | undefined,
   }),
+})
+
+const categoriesRoute = createRoute({
+  getParentRoute: () => storeLayoutRoute,
+  path: '/categories',
+  component: CategoriesPage,
 })
 
 const productRoute = createRoute({
@@ -177,6 +184,7 @@ const routeTree = rootRoute.addChildren([
   storeLayoutRoute.addChildren([
     indexRoute,
     shopRoute,
+    categoriesRoute,
     productRoute,
     cartRoute,
     checkoutRoute,

@@ -47,8 +47,7 @@ export function Navbar() {
               Shop
             </Link>
             <Link
-              to="/shop"
-              search={{ category: undefined }}
+              to="/categories"
               className="text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
             >
               Categories
@@ -149,6 +148,7 @@ export function Navbar() {
           <div className="border-t py-4 md:hidden">
             <nav className="flex flex-col gap-2">
               <Link to="/shop" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Shop</Link>
+              <Link to="/categories" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Categories</Link>
               {user ? (
                 <>
                   <Link to="/account" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>My Account</Link>
