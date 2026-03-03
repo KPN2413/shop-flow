@@ -3,6 +3,9 @@
  * Checkout uses a single atomic PostgreSQL stored procedure (RPC) so that
  * stock validation, order creation, inventory decrement, and cart clearance
  * all happen in one transaction — if anything fails, everything rolls back.
+ *
+ * Rate limiting (max 5 checkouts per user per 10 min) is enforced inside
+ * the PostgreSQL function itself — no extra services needed.
  */
 import { supabase } from './supabase'
 
@@ -19,15 +22,14 @@ export const api = {
     })
 
     if (error) {
-      // Supabase RPC network/auth error
       return { success: false, error: error.message }
     }
 
     const result = data as { success: boolean; order_id?: string; error?: string }
 
     if (!result.success) {
-      // Parse the structured error codes thrown by the PG function
       const msg = result.error ?? 'Checkout failed'
+      if (msg.startsWith('RATE_LIMITED'))          return { success: false, error: 'Too many checkout attempts. Please wait a few minutes.' }
       if (msg.startsWith('CART_EMPTY'))            return { success: false, error: 'Your cart is empty' }
       if (msg.startsWith('PRODUCT_NOT_FOUND'))     return { success: false, error: 'A product in your cart no longer exists' }
       if (msg.startsWith('PRODUCT_UNAVAILABLE:'))  return { success: false, error: `${msg.split(':')[1]} is no longer available` }

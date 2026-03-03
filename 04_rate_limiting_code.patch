@@ -1,0 +1,50 @@
+From 38c8759c1f1f22a4c361dbd6d60def67ebe46fa6 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Tue, 3 Mar 2026 22:11:20 +0000
+Subject: [PATCH] feat: add rate limiting to checkout (max 5 attempts per 10
+ min)
+
+- Handle RATE_LIMITED error code from PostgreSQL function in api.ts
+- Rate limit logic lives inside the DB function (see 03_rate_limiting.sql):
+  - Tracks attempts in rate_limits table with timestamps
+  - Max 5 checkout attempts per user per 10 minutes
+  - Even failed attempts count (prevents retry flooding)
+  - Auto-cleanup of records older than 1 hour
+---
+ src/lib/api.ts | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/src/lib/api.ts b/src/lib/api.ts
+index 533dc0c..fad18b3 100644
+--- a/src/lib/api.ts
++++ b/src/lib/api.ts
+@@ -3,6 +3,9 @@
+  * Checkout uses a single atomic PostgreSQL stored procedure (RPC) so that
+  * stock validation, order creation, inventory decrement, and cart clearance
+  * all happen in one transaction — if anything fails, everything rolls back.
++ *
++ * Rate limiting (max 5 checkouts per user per 10 min) is enforced inside
++ * the PostgreSQL function itself — no extra services needed.
+  */
+ import { supabase } from './supabase'
+ 
+@@ -19,15 +22,14 @@ export const api = {
+     })
+ 
+     if (error) {
+-      // Supabase RPC network/auth error
+       return { success: false, error: error.message }
+     }
+ 
+     const result = data as { success: boolean; order_id?: string; error?: string }
+ 
+     if (!result.success) {
+-      // Parse the structured error codes thrown by the PG function
+       const msg = result.error ?? 'Checkout failed'
++      if (msg.startsWith('RATE_LIMITED'))          return { success: false, error: 'Too many checkout attempts. Please wait a few minutes.' }
+       if (msg.startsWith('CART_EMPTY'))            return { success: false, error: 'Your cart is empty' }
+       if (msg.startsWith('PRODUCT_NOT_FOUND'))     return { success: false, error: 'A product in your cart no longer exists' }
+       if (msg.startsWith('PRODUCT_UNAVAILABLE:'))  return { success: false, error: `${msg.split(':')[1]} is no longer available` }
+-- 
+2.43.0
+
