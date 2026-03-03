@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback, useRef } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
@@ -7,27 +7,27 @@ import { Badge } from '../components/ui/badge'
 import { ProductCard } from '../components/shop/ProductCard'
 import { supabase } from '../lib/supabase'
 import type { Product, Category } from '../lib/database.types'
-import { useSearch } from '@tanstack/react-router'
+
+function getCategoryFromURL(): string {
+  const params = new URLSearchParams(window.location.search)
+  return params.get('category') || 'all'
+}
 
 export function ShopPage() {
-  const searchParams = useSearch({ from: '/shop' as any })
-  const categoryParam: string | undefined = (searchParams as any).category
-
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'all')
+  const [selectedCategory, setSelectedCategory] = useState<string>(getCategoryFromURL)
   const [sort, setSort] = useState<string>('newest')
 
-  // Sync selectedCategory with URL param using a ref to avoid triggering on mount
-  const prevCategoryParam = useRef(categoryParam)
   useEffect(() => {
-    if (categoryParam !== prevCategoryParam.current) {
-      prevCategoryParam.current = categoryParam
-      setSelectedCategory(categoryParam || 'all')
-    }
-  }, [categoryParam])
+    // Read category from URL on mount and whenever navigation happens
+    const syncFromURL = () => setSelectedCategory(getCategoryFromURL())
+    syncFromURL()
+    window.addEventListener('popstate', syncFromURL)
+    return () => window.removeEventListener('popstate', syncFromURL)
+  }, [])
 
   useEffect(() => {
     supabase.from('categories').select('*').order('name').then(({ data }) => {
@@ -67,7 +67,6 @@ export function ShopPage() {
         <p className="text-muted-foreground">{loading ? '...' : `${products.length} products found`}</p>
       </div>
 
-      {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3 mb-8">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -101,25 +100,23 @@ export function ShopPage() {
         </Select>
       </div>
 
-      {/* Active Filters */}
       {(selectedCategory !== 'all' || search) && (
         <div className="flex flex-wrap gap-2 mb-4">
           {selectedCategory !== 'all' && (
             <Badge variant="secondary" className="gap-1">
               {categories.find(c => c.id === selectedCategory)?.name}
-              <button onClick={() => setSelectedCategory('all')} className="ml-1 hover:text-foreground">×</button>
+              <button onClick={() => setSelectedCategory('all')} className="ml-1 hover:text-foreground">x</button>
             </Badge>
           )}
           {search && (
             <Badge variant="secondary" className="gap-1">
               "{search}"
-              <button onClick={() => setSearch('')} className="ml-1 hover:text-foreground">×</button>
+              <button onClick={() => setSearch('')} className="ml-1 hover:text-foreground">x</button>
             </Badge>
           )}
         </div>
       )}
 
-      {/* Products Grid */}
       {loading ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           {Array.from({ length: 8 }).map((_, i) => (
