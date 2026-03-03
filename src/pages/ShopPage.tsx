@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Search, SlidersHorizontal } from 'lucide-react'
 import { Input } from '../components/ui/input'
 import { Button } from '../components/ui/button'
@@ -7,26 +7,27 @@ import { Badge } from '../components/ui/badge'
 import { ProductCard } from '../components/shop/ProductCard'
 import { supabase } from '../lib/supabase'
 import type { Product, Category } from '../lib/database.types'
-import { useSearch, useNavigate } from '@tanstack/react-router'
+import { useSearch } from '@tanstack/react-router'
 
 export function ShopPage() {
-  const { category: categoryParam, q: qParam } = useSearch({ from: '/shop' as any })
-  const navigate = useNavigate()
+  const searchParams = useSearch({ from: '/shop' as any })
+  const categoryParam: string | undefined = (searchParams as any).category
+
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
-  const [search, setSearch] = useState(qParam || '')
+  const [search, setSearch] = useState('')
+  const [selectedCategory, setSelectedCategory] = useState<string>(categoryParam || 'all')
   const [sort, setSort] = useState<string>('newest')
 
-  // selectedCategory is always derived from URL param — source of truth is the URL
-  const selectedCategory = categoryParam || 'all'
-
-  const setSelectedCategory = (val: string) => {
-    navigate({
-      to: '/shop',
-      search: { category: val === 'all' ? undefined : val, q: search || undefined },
-    })
-  }
+  // Sync selectedCategory with URL param using a ref to avoid triggering on mount
+  const prevCategoryParam = useRef(categoryParam)
+  useEffect(() => {
+    if (categoryParam !== prevCategoryParam.current) {
+      prevCategoryParam.current = categoryParam
+      setSelectedCategory(categoryParam || 'all')
+    }
+  }, [categoryParam])
 
   useEffect(() => {
     supabase.from('categories').select('*').order('name').then(({ data }) => {
