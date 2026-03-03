@@ -5,8 +5,10 @@ import { Button } from '@/components/ui/button'
 import { ProductCard } from '@/components/shared/ProductCard'
 import { supabase } from '@/lib/supabase'
 import type { ProductWithCategory } from '@/lib/database.types'
+import { useAuth } from '@/lib/auth-context'
 
 export function HomePage() {
+  const { user } = useAuth()
   const [featuredProducts, setFeaturedProducts] = useState<ProductWithCategory[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -62,11 +64,13 @@ export function HomePage() {
                   Shop Now <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
-              <Link to="/signup">
-                <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/20 text-white bg-transparent hover:bg-white/10">
-                  Create Account
-                </Button>
-              </Link>
+              {!user && (
+                <Link to="/signup">
+                  <Button size="lg" variant="outline" className="w-full sm:w-auto border-white/20 text-white bg-transparent hover:bg-white/10">
+                    Create Account
+                  </Button>
+                </Link>
+              )}
             </div>
           </div>
         </div>
