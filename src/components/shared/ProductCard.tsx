@@ -1,7 +1,7 @@
+import React from 'react'
 import { Link } from '@tanstack/react-router'
 import { ShoppingCart, Package } from 'lucide-react'
 import { Button } from '../ui/button'
-import { Badge } from '../ui/badge'
 import { formatINR } from '@/lib/format'
 import { useCart } from '@/lib/cart-context'
 import { useAuth } from '@/lib/auth-context'
@@ -31,7 +31,7 @@ export function ProductCard({ product }: ProductCardProps) {
   }
 
   return (
-    <Link to="/product/$slug" params={{ slug: product.slug }} className="group block">
+    <Link to="/product/$slug" params={{ slug: product.slug } as any} className="group block">
       <div className="product-card rounded-xl border bg-card overflow-hidden shadow-sm">
         {/* Image */}
         <div className="relative aspect-square overflow-hidden bg-muted">
