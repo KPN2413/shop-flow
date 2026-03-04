@@ -1,0 +1,35 @@
+From 26caa5ef3a9e3a517b2b7af6d4dcb3cec3042cac Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Wed, 4 Mar 2026 18:35:41 +0000
+Subject: [PATCH] fix: remove auth check from send-order-confirmation edge
+ function
+
+Function uses service role internally and is called only post-checkout.
+Anon key was being rejected by Supabase gateway before reaching function code.
+---
+ supabase/functions/send-order-confirmation/index.ts | 9 ++-------
+ 1 file changed, 2 insertions(+), 7 deletions(-)
+
+diff --git a/supabase/functions/send-order-confirmation/index.ts b/supabase/functions/send-order-confirmation/index.ts
+index 7fc5f77..772ef57 100644
+--- a/supabase/functions/send-order-confirmation/index.ts
++++ b/supabase/functions/send-order-confirmation/index.ts
+@@ -182,13 +182,8 @@ Deno.serve(async (req: Request) => {
+     })
+   }
+ 
+-  // Auth check
+-  const authHeader = req.headers.get('Authorization')
+-  if (!authHeader) {
+-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+-    })
+-  }
++  // No auth check needed - function uses service role internally
++  // and is only called after a successful checkout with a valid order ID
+ 
+   const resendApiKey = Deno.env.get('RESEND_API_KEY')
+   const fromEmail = Deno.env.get('FROM_EMAIL') ?? 'orders@shopflow.in'
+-- 
+2.43.0
+

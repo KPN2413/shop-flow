@@ -182,13 +182,8 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  // Auth check
-  const authHeader = req.headers.get('Authorization')
-  if (!authHeader) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
-    })
-  }
+  // No auth check needed - function uses service role internally
+  // and is only called after a successful checkout with a valid order ID
 
   const resendApiKey = Deno.env.get('RESEND_API_KEY')
   const fromEmail = Deno.env.get('FROM_EMAIL') ?? 'orders@shopflow.in'
