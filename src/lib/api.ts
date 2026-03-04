@@ -10,18 +10,19 @@
 import { supabase } from './supabase'
 
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string
 
 async function sendOrderConfirmationEmail(orderId: string): Promise<void> {
   try {
-    const { data: { session } } = await supabase.auth.getSession()
-    if (!session?.access_token || !SUPABASE_URL) return
+    if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return
 
     // Fire and forget — email failure should never block the user
     fetch(`${SUPABASE_URL}/functions/v1/send-order-confirmation`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
+        'apikey': SUPABASE_ANON_KEY,          // required by Supabase gateway
+        'Authorization': `Bearer ${SUPABASE_ANON_KEY}`,
       },
       body: JSON.stringify({ orderId }),
     }).catch(err => console.warn('Email notification failed (non-critical):', err))
@@ -32,19 +33,15 @@ async function sendOrderConfirmationEmail(orderId: string): Promise<void> {
 
 export const api = {
   async checkout(paymentMethod: 'COD' | 'MOCK'): Promise<{ success: boolean; orderId?: string; error?: string }> {
-    // Verify the user is authenticated client-side before hitting the DB
     const { data: { session } } = await supabase.auth.getSession()
     if (!session?.user) return { success: false, error: 'Please sign in to checkout' }
 
-    // Single atomic RPC call — all logic runs in one DB transaction
     const { data, error } = await supabase.rpc('checkout_and_place_order', {
       p_user_id: session.user.id,
       p_payment_method: paymentMethod,
     })
 
-    if (error) {
-      return { success: false, error: error.message }
-    }
+    if (error) return { success: false, error: error.message }
 
     const result = data as { success: boolean; order_id?: string; error?: string }
 
@@ -54,17 +51,11 @@ export const api = {
       if (msg.startsWith('CART_EMPTY'))            return { success: false, error: 'Your cart is empty' }
       if (msg.startsWith('PRODUCT_NOT_FOUND'))     return { success: false, error: 'A product in your cart no longer exists' }
       if (msg.startsWith('PRODUCT_UNAVAILABLE:'))  return { success: false, error: `${msg.split(':')[1]} is no longer available` }
-      if (msg.startsWith('INSUFFICIENT_STOCK:')) {
-        const parts = msg.split(':')
-        return { success: false, error: `Not enough stock for ${parts[1]}` }
-      }
+      if (msg.startsWith('INSUFFICIENT_STOCK:'))   return { success: false, error: `Not enough stock for ${msg.split(':')[1]}` }
       return { success: false, error: msg }
     }
 
-    // Checkout succeeded — fire confirmation email in background
-    if (result.order_id) {
-      sendOrderConfirmationEmail(result.order_id)
-    }
+    if (result.order_id) sendOrderConfirmationEmail(result.order_id)
 
     return { success: true, orderId: result.order_id }
   },
