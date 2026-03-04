@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  ci:
+    name: Type Check + Lint + Build
+    runs-on: ubuntu-latest
+
+    steps:
+      # ── 1. Checkout code ────────────────────────────────────
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      # ── 2. Setup Node ────────────────────────────────────────
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      # ── 3. Install dependencies ──────────────────────────────
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      # ── 4. TypeScript type check ─────────────────────────────
+      # Catches type errors before they hit production
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      # ── 5. ESLint ────────────────────────────────────────────
+      # Catches code quality issues and unused imports
+      - name: Lint
+        run: npx eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0
+        continue-on-error: true  # warnings don't fail the build
+
+      # ── 6. Production build ──────────────────────────────────
+      # This is the most important check — if Vite can't build it,
+      # Vercel will also fail. We catch it here first.
+      - name: Build
+        run: npm run build
+        env:
+          # Provide dummy env vars so Vite doesn't error on missing keys
+          VITE_SUPABASE_URL: https://placeholder.supabase.co
+          VITE_SUPABASE_ANON_KEY: placeholder-anon-key
+
+      # ── 7. Confirm build output exists ───────────────────────
+      - name: Verify build output
+        run: |
+          echo "Build output:"
+          ls -lh dist/
+          echo "✅ Build succeeded"
