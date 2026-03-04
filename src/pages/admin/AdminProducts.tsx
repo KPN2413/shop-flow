@@ -25,7 +25,7 @@ interface ProductForm {
 }
 
 const defaultForm: ProductForm = {
-  title: '', slug: '', description: '', price: '', status: 'DRAFT', visibility: 'HIDDEN', category_id: '', image_url: ''
+  title: '', slug: '', description: '', price: '', status: 'ACTIVE', visibility: 'PUBLIC', category_id: '', image_url: ''
 }
 
 export function AdminProducts() {

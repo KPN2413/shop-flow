@@ -1,0 +1,28 @@
+From d03a69e9eaf83832db5b84d32cc1ac9aaea279c8 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Wed, 4 Mar 2026 18:07:14 +0000
+Subject: [PATCH] fix: change AdminProducts default status from DRAFT/HIDDEN to
+ ACTIVE/PUBLIC
+
+New products were defaulting to DRAFT+HIDDEN which made them invisible
+on the storefront after RLS was enabled. Now defaults to ACTIVE+PUBLIC.
+---
+ src/pages/admin/AdminProducts.tsx | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/pages/admin/AdminProducts.tsx b/src/pages/admin/AdminProducts.tsx
+index 60abae8..f09efba 100644
+--- a/src/pages/admin/AdminProducts.tsx
++++ b/src/pages/admin/AdminProducts.tsx
+@@ -25,7 +25,7 @@ interface ProductForm {
+ }
+ 
+ const defaultForm: ProductForm = {
+-  title: '', slug: '', description: '', price: '', status: 'DRAFT', visibility: 'HIDDEN', category_id: '', image_url: ''
++  title: '', slug: '', description: '', price: '', status: 'ACTIVE', visibility: 'PUBLIC', category_id: '', image_url: ''
+ }
+ 
+ export function AdminProducts() {
+-- 
+2.43.0
+
