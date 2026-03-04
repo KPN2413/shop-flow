@@ -1,21 +1,37 @@
 import { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { CreditCard, Truck, CheckCircle, AlertCircle, Package } from 'lucide-react'
+import { CreditCard, Truck, CheckCircle, AlertCircle, Package, Zap } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Separator } from '../components/ui/separator'
 import { formatINR } from '../lib/format'
 import { useCart } from '../lib/cart-context'
 import { useAuth } from '../lib/auth-context'
 import { api } from '../lib/api'
+import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
-type PaymentMethod = 'COD' | 'MOCK'
+type PaymentMethod = 'COD' | 'MOCK' | 'RAZORPAY'
+
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string
+const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string
+
+// Load Razorpay script dynamically
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise(resolve => {
+    if ((window as any).Razorpay) return resolve(true)
+    const script = document.createElement('script')
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js'
+    script.onload = () => resolve(true)
+    script.onerror = () => resolve(false)
+    document.body.appendChild(script)
+  })
+}
 
 export function CheckoutPage() {
   const { user, profile } = useAuth()
   const { items, totalPaise: cartTotal, refresh: refetch } = useCart()
   const navigate = useNavigate()
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('MOCK')
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('RAZORPAY')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -37,22 +53,139 @@ export function CheckoutPage() {
   const shippingCost = cartTotal >= 49900 ? 0 : 4900
   const grandTotal = cartTotal + shippingCost
 
-  const handlePlaceOrder = async () => {
+  // ── Razorpay payment flow ──────────────────────────────────────────────────
+  const handleRazorpayPayment = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const result = await api.checkout(paymentMethod)
+      // 1. Load Razorpay script
+      const loaded = await loadRazorpayScript()
+      if (!loaded) throw new Error('Failed to load Razorpay. Check your internet connection.')
 
+      // 2. Create Razorpay order server-side (secret key never leaves server)
+      const rzpRes = await fetch(`${SUPABASE_URL}/functions/v1/create-razorpay-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          amountPaise: grandTotal,
+          receipt: `shopflow_${Date.now()}`,
+        }),
+      })
+
+      if (!rzpRes.ok) {
+        const err = await rzpRes.json()
+        throw new Error(err.error || 'Failed to create payment order')
+      }
+
+      const { razorpayOrderId, keyId } = await rzpRes.json()
+
+      // 3. First create our order in DB (pending payment)
+      const { data: { session } } = await supabase.auth.getSession()
+      const { data: dbOrder, error: dbErr } = await supabase
+        .from('orders')
+        .insert({
+          user_id: user.id,
+          status: 'CREATED',
+          total_paise: grandTotal,
+          payment_method: 'RAZORPAY',
+          payment_status: 'PENDING',
+          razorpay_order_id: razorpayOrderId,
+        })
+        .select('id')
+        .single()
+
+      if (dbErr || !dbOrder) throw new Error('Failed to create order')
+
+      // Create order items
+      const orderItems = items.map((item: any) => ({
+        order_id: dbOrder.id,
+        product_id: item.product_id,
+        title_snapshot: item.products?.title,
+        price_paise_snapshot: item.products?.price_paise,
+        qty: item.qty,
+      }))
+      await supabase.from('order_items').insert(orderItems)
+
+      // Decrement inventory
+      for (const item of items) {
+        await supabase.rpc('checkout_and_place_order', {
+          p_user_id: user.id,
+          p_payment_method: 'RAZORPAY',
+        })
+      }
+
+      // 4. Open Razorpay checkout widget
+      const options = {
+        key: keyId,
+        amount: grandTotal,
+        currency: 'INR',
+        name: 'ShopFlow',
+        description: `Order #${dbOrder.id.slice(0, 8).toUpperCase()}`,
+        order_id: razorpayOrderId,
+        prefill: {
+          name: profile?.full_name || '',
+          email: user.email || '',
+          contact: profile?.phone || '',
+        },
+        theme: { color: '#FF6B35' },
+        handler: async (response: any) => {
+          // Payment successful — update order status
+          await supabase
+            .from('orders')
+            .update({
+              status: 'PAID',
+              payment_status: 'SUCCESS',
+              razorpay_payment_id: response.razorpay_payment_id,
+            })
+            .eq('id', dbOrder.id)
+
+          await supabase.from('cart_items').delete().eq('user_id', user.id)
+          await refetch()
+          toast.success('Payment successful! Order confirmed.')
+          navigate({ to: '/account/orders' })
+        },
+        modal: {
+          ondismiss: async () => {
+            // User closed modal without paying — mark as failed
+            await supabase
+              .from('orders')
+              .update({ status: 'FAILED', payment_status: 'FAILED' })
+              .eq('id', dbOrder.id)
+            setError('Payment cancelled. Your order was not placed.')
+            setLoading(false)
+          }
+        }
+      }
+
+      const rzp = new (window as any).Razorpay(options)
+      rzp.open()
+
+    } catch (err: any) {
+      setError(err.message || 'Payment failed. Please try again.')
+      setLoading(false)
+    }
+  }
+
+  // ── COD / Mock flow ────────────────────────────────────────────────────────
+  const handlePlaceOrder = async () => {
+    if (paymentMethod === 'RAZORPAY') return handleRazorpayPayment()
+
+    setLoading(true)
+    setError(null)
+    try {
+      const result = await api.checkout(paymentMethod as 'COD' | 'MOCK')
       if (!result.success) {
         setError(result.error || 'Checkout failed. Please try again.')
         return
       }
-
       await refetch()
       toast.success('Order placed successfully!')
       navigate({ to: '/account/orders' })
-    } catch (err: any) {
+    } catch {
       setError('Something went wrong. Please try again.')
     } finally {
       setLoading(false)
@@ -94,27 +227,46 @@ export function CheckoutPage() {
           <div className="shopflow-card p-6">
             <h2 className="font-bold text-lg mb-4">Payment Method</h2>
             <div className="space-y-3">
-              <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'MOCK' ? 'border-primary bg-secondary/30' : 'border-border hover:border-primary/30'}`}>
-                <input type="radio" name="payment" value="MOCK" checked={paymentMethod === 'MOCK'} onChange={() => setPaymentMethod('MOCK')} className="hidden" />
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'MOCK' ? 'border-primary' : 'border-border'}`}>
-                  {paymentMethod === 'MOCK' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+
+              {/* Razorpay */}
+              <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'RAZORPAY' ? 'border-primary bg-secondary/30' : 'border-border hover:border-primary/30'}`}>
+                <input type="radio" name="payment" value="RAZORPAY" checked={paymentMethod === 'RAZORPAY'} onChange={() => setPaymentMethod('RAZORPAY')} className="hidden" />
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${paymentMethod === 'RAZORPAY' ? 'border-primary' : 'border-border'}`}>
+                  {paymentMethod === 'RAZORPAY' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                 </div>
-                <CreditCard className="w-5 h-5 text-primary shrink-0" />
-                <div>
-                  <div className="font-semibold text-sm">Pay Now (Demo)</div>
-                  <div className="text-xs text-muted-foreground">Instant order confirmation — demo mode</div>
+                <Zap className="w-5 h-5 text-primary shrink-0" />
+                <div className="flex-1">
+                  <div className="font-semibold text-sm flex items-center gap-2">
+                    Pay Online
+                    <span className="text-[10px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-medium">UPI · Cards · NetBanking</span>
+                  </div>
+                  <div className="text-xs text-muted-foreground">Secure payment via Razorpay</div>
                 </div>
               </label>
 
+              {/* COD */}
               <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'COD' ? 'border-primary bg-secondary/30' : 'border-border hover:border-primary/30'}`}>
                 <input type="radio" name="payment" value="COD" checked={paymentMethod === 'COD'} onChange={() => setPaymentMethod('COD')} className="hidden" />
-                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center ${paymentMethod === 'COD' ? 'border-primary' : 'border-border'}`}>
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${paymentMethod === 'COD' ? 'border-primary' : 'border-border'}`}>
                   {paymentMethod === 'COD' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
                 </div>
                 <Truck className="w-5 h-5 text-primary shrink-0" />
                 <div>
                   <div className="font-semibold text-sm">Cash on Delivery</div>
                   <div className="text-xs text-muted-foreground">Pay when your order arrives</div>
+                </div>
+              </label>
+
+              {/* Mock */}
+              <label className={`flex items-center gap-4 p-4 rounded-xl border-2 cursor-pointer transition-colors ${paymentMethod === 'MOCK' ? 'border-primary bg-secondary/30' : 'border-border hover:border-primary/30'}`}>
+                <input type="radio" name="payment" value="MOCK" checked={paymentMethod === 'MOCK'} onChange={() => setPaymentMethod('MOCK')} className="hidden" />
+                <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center shrink-0 ${paymentMethod === 'MOCK' ? 'border-primary' : 'border-border'}`}>
+                  {paymentMethod === 'MOCK' && <div className="w-2.5 h-2.5 rounded-full bg-primary" />}
+                </div>
+                <CreditCard className="w-5 h-5 text-muted-foreground shrink-0" />
+                <div>
+                  <div className="font-semibold text-sm text-muted-foreground">Demo Payment</div>
+                  <div className="text-xs text-muted-foreground">Instant confirmation — for testing only</div>
                 </div>
               </label>
             </div>
@@ -127,7 +279,7 @@ export function CheckoutPage() {
             <h2 className="font-bold text-lg mb-4">Order Summary</h2>
 
             <div className="space-y-3 mb-4">
-              {items.map(item => {
+              {items.map((item: any) => {
                 const product = item.products as any
                 return (
                   <div key={item.id} className="flex items-center gap-3 text-sm">
@@ -172,16 +324,20 @@ export function CheckoutPage() {
             )}
 
             <Button size="lg" className="w-full mt-4" onClick={handlePlaceOrder} disabled={loading}>
-              {loading ? 'Placing Order...' : (
+              {loading ? 'Processing...' : (
                 <>
                   <CheckCircle className="mr-2 w-4 h-4" />
-                  Place Order — {formatINR(grandTotal)}
+                  {paymentMethod === 'RAZORPAY' ? `Pay ${formatINR(grandTotal)}` : `Place Order — ${formatINR(grandTotal)}`}
                 </>
               )}
             </Button>
-            <p className="text-xs text-muted-foreground mt-3 text-center">
-              By placing this order, you agree to our terms of service
-            </p>
+
+            {paymentMethod === 'RAZORPAY' && (
+              <div className="flex items-center justify-center gap-2 mt-3">
+                <img src="https://razorpay.com/favicon.ico" alt="Razorpay" className="w-4 h-4" />
+                <p className="text-xs text-muted-foreground">Secured by Razorpay</p>
+              </div>
+            )}
           </div>
         </div>
       </div>
