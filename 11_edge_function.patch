@@ -1,0 +1,367 @@
+From e1cff7a49fb3879520759b15058b2a7eaf627247 Mon Sep 17 00:00:00 2001
+From: Claude <claude@anthropic.com>
+Date: Wed, 4 Mar 2026 17:38:37 +0000
+Subject: [PATCH] feat: add send-order-confirmation edge function
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- New Edge Function: supabase/functions/send-order-confirmation/index.ts
+  - Sends branded HTML order confirmation email via Resend API
+  - Fetches order + items + customer name from DB using service role
+  - Graceful degradation: if RESEND_API_KEY not set, logs warning and returns success
+  - Email never blocks checkout — fired as background fire-and-forget call
+- Updated src/lib/api.ts: calls edge function after successful checkout RPC
+  - Uses fetch() with no await on the outer promise (fire and forget)
+  - Any email failure is caught and logged, never surfaces to the user
+---
+ src/lib/api.ts                                |  30 +-
+ .../send-order-confirmation/index.ts          | 285 ++++++++++++++++++
+ 2 files changed, 313 insertions(+), 2 deletions(-)
+ create mode 100644 supabase/functions/send-order-confirmation/index.ts
+
+diff --git a/src/lib/api.ts b/src/lib/api.ts
+index fad18b3..e296fb5 100644
+--- a/src/lib/api.ts
++++ b/src/lib/api.ts
+@@ -4,11 +4,32 @@
+  * stock validation, order creation, inventory decrement, and cart clearance
+  * all happen in one transaction — if anything fails, everything rolls back.
+  *
+- * Rate limiting (max 5 checkouts per user per 10 min) is enforced inside
+- * the PostgreSQL function itself — no extra services needed.
++ * After a successful checkout, fires the send-order-confirmation Edge Function
++ * to email the customer their order details (non-blocking — won't fail checkout).
+  */
+ import { supabase } from './supabase'
+ 
++const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string
++
++async function sendOrderConfirmationEmail(orderId: string): Promise<void> {
++  try {
++    const { data: { session } } = await supabase.auth.getSession()
++    if (!session?.access_token || !SUPABASE_URL) return
++
++    // Fire and forget — email failure should never block the user
++    fetch(`${SUPABASE_URL}/functions/v1/send-order-confirmation`, {
++      method: 'POST',
++      headers: {
++        'Content-Type': 'application/json',
++        'Authorization': `Bearer ${session.access_token}`,
++      },
++      body: JSON.stringify({ orderId }),
++    }).catch(err => console.warn('Email notification failed (non-critical):', err))
++  } catch {
++    // Silently ignore — email is non-critical
++  }
++}
++
+ export const api = {
+   async checkout(paymentMethod: 'COD' | 'MOCK'): Promise<{ success: boolean; orderId?: string; error?: string }> {
+     // Verify the user is authenticated client-side before hitting the DB
+@@ -40,6 +61,11 @@ export const api = {
+       return { success: false, error: msg }
+     }
+ 
++    // Checkout succeeded — fire confirmation email in background
++    if (result.order_id) {
++      sendOrderConfirmationEmail(result.order_id)
++    }
++
+     return { success: true, orderId: result.order_id }
+   },
+ }
+diff --git a/supabase/functions/send-order-confirmation/index.ts b/supabase/functions/send-order-confirmation/index.ts
+new file mode 100644
+index 0000000..7fc5f77
+--- /dev/null
++++ b/supabase/functions/send-order-confirmation/index.ts
+@@ -0,0 +1,285 @@
++/**
++ * send-order-confirmation
++ *
++ * Triggered after a successful checkout to send the user an order
++ * confirmation email. Uses Resend (free tier: 3,000 emails/month).
++ *
++ * Called from: src/lib/api.ts after checkout_and_place_order RPC succeeds
++ *
++ * Environment variables required (set in Supabase Dashboard → Edge Functions → Secrets):
++ *   RESEND_API_KEY   — get from https://resend.com (free)
++ *   FROM_EMAIL       — e.g. orders@yourdomain.com (must be verified in Resend)
++ */
++
++import { createClient } from 'npm:@supabase/supabase-js@2'
++
++const corsHeaders = {
++  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
++  'Access-Control-Allow-Methods': 'POST, OPTIONS',
++}
++
++function formatINR(paise: number): string {
++  return new Intl.NumberFormat('en-IN', {
++    style: 'currency',
++    currency: 'INR',
++    minimumFractionDigits: 2,
++  }).format(paise / 100)
++}
++
++function buildEmailHTML(data: {
++  customerName: string
++  orderId: string
++  orderStatus: string
++  paymentMethod: string
++  items: Array<{ title: string; qty: number; price_paise: number }>
++  totalPaise: number
++  createdAt: string
++}): string {
++  const itemRows = data.items.map(item => `
++    <tr>
++      <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333;">
++        ${item.title}
++      </td>
++      <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #666; text-align: center;">
++        ×${item.qty}
++      </td>
++      <td style="padding: 12px 0; border-bottom: 1px solid #f0f0f0; font-size: 14px; color: #333; text-align: right;">
++        ${formatINR(item.price_paise * item.qty)}
++      </td>
++    </tr>
++  `).join('')
++
++  const statusColor = data.orderStatus === 'PAID' ? '#16a34a' : '#2563eb'
++  const statusLabel = data.orderStatus === 'PAID' ? 'Payment Confirmed' : 'Order Received'
++  const paymentLabel = data.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment'
++
++  return `
++<!DOCTYPE html>
++<html>
++<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
++<body style="margin: 0; padding: 0; background-color: #f6f9fc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;">
++  <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f6f9fc; padding: 40px 20px;">
++    <tr>
++      <td align="center">
++        <table width="600" cellpadding="0" cellspacing="0" style="max-width: 600px; width: 100%;">
++
++          <!-- Header -->
++          <tr>
++            <td style="background: linear-gradient(135deg, #1C2A47 0%, #2d3f63 100%); padding: 32px 40px; border-radius: 12px 12px 0 0; text-align: center;">
++              <h1 style="margin: 0; color: white; font-size: 28px; font-weight: 700; letter-spacing: -0.5px;">
++                Shop<span style="color: #FF6B35;">Flow</span>
++              </h1>
++              <p style="margin: 8px 0 0; color: rgba(255,255,255,0.7); font-size: 14px;">India's Smart Shopping</p>
++            </td>
++          </tr>
++
++          <!-- Status Banner -->
++          <tr>
++            <td style="background-color: ${statusColor}; padding: 16px 40px; text-align: center;">
++              <p style="margin: 0; color: white; font-size: 16px; font-weight: 600;">
++                ✓ ${statusLabel}
++              </p>
++            </td>
++          </tr>
++
++          <!-- Body -->
++          <tr>
++            <td style="background: white; padding: 40px; border-radius: 0 0 12px 12px;">
++
++              <!-- Greeting -->
++              <p style="margin: 0 0 8px; font-size: 22px; font-weight: 700; color: #1C2A47;">
++                Hi ${data.customerName}! 👋
++              </p>
++              <p style="margin: 0 0 32px; font-size: 15px; color: #666; line-height: 1.5;">
++                ${data.orderStatus === 'PAID'
++                  ? 'Your payment was successful and your order is confirmed. We\'ll get it ready for you soon!'
++                  : 'Your order has been placed successfully. Please keep cash ready for delivery.'}
++              </p>
++
++              <!-- Order Details -->
++              <div style="background: #f8fafc; border-radius: 8px; padding: 20px; margin-bottom: 32px;">
++                <table width="100%" cellpadding="0" cellspacing="0">
++                  <tr>
++                    <td style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Order ID</td>
++                    <td style="font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px; text-align: right;">Date</td>
++                  </tr>
++                  <tr>
++                    <td style="font-size: 14px; font-weight: 600; color: #1C2A47; font-family: monospace; padding-top: 4px;">
++                      #${data.orderId.slice(0, 8).toUpperCase()}
++                    </td>
++                    <td style="font-size: 14px; color: #333; text-align: right; padding-top: 4px;">
++                      ${new Date(data.createdAt).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })}
++                    </td>
++                  </tr>
++                  <tr>
++                    <td colspan="2" style="padding-top: 12px; font-size: 12px; color: #888; text-transform: uppercase; letter-spacing: 0.5px;">Payment Method</td>
++                  </tr>
++                  <tr>
++                    <td colspan="2" style="font-size: 14px; font-weight: 600; color: #1C2A47; padding-top: 4px;">
++                      ${paymentLabel}
++                    </td>
++                  </tr>
++                </table>
++              </div>
++
++              <!-- Items -->
++              <h3 style="margin: 0 0 16px; font-size: 16px; font-weight: 700; color: #1C2A47;">Order Items</h3>
++              <table width="100%" cellpadding="0" cellspacing="0">
++                <thead>
++                  <tr>
++                    <th style="font-size: 12px; color: #888; text-align: left; padding-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Item</th>
++                    <th style="font-size: 12px; color: #888; text-align: center; padding-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
++                    <th style="font-size: 12px; color: #888; text-align: right; padding-bottom: 8px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Price</th>
++                  </tr>
++                </thead>
++                <tbody>
++                  ${itemRows}
++                </tbody>
++              </table>
++
++              <!-- Total -->
++              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top: 16px; padding-top: 16px; border-top: 2px solid #1C2A47;">
++                <tr>
++                  <td style="font-size: 16px; font-weight: 700; color: #1C2A47;">Total</td>
++                  <td style="font-size: 20px; font-weight: 700; color: #FF6B35; text-align: right;">
++                    ${formatINR(data.totalPaise)}
++                  </td>
++                </tr>
++              </table>
++
++              <!-- CTA -->
++              <div style="text-align: center; margin-top: 40px;">
++                <a href="https://shop-flow-eight.vercel.app/account/orders"
++                   style="display: inline-block; background-color: #FF6B35; color: white; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px;">
++                  View Your Orders →
++                </a>
++              </div>
++
++              <!-- Footer -->
++              <p style="margin: 40px 0 0; font-size: 13px; color: #999; text-align: center; line-height: 1.5;">
++                Questions? Reply to this email or visit our store.<br>
++                <a href="https://shop-flow-eight.vercel.app" style="color: #FF6B35; text-decoration: none;">shop-flow-eight.vercel.app</a>
++              </p>
++
++            </td>
++          </tr>
++
++        </table>
++      </td>
++    </tr>
++  </table>
++</body>
++</html>
++  `
++}
++
++Deno.serve(async (req: Request) => {
++  if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders })
++  if (req.method !== 'POST') {
++    return new Response(JSON.stringify({ error: 'Method not allowed' }), {
++      status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
++    })
++  }
++
++  // Auth check
++  const authHeader = req.headers.get('Authorization')
++  if (!authHeader) {
++    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
++      status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
++    })
++  }
++
++  const resendApiKey = Deno.env.get('RESEND_API_KEY')
++  const fromEmail = Deno.env.get('FROM_EMAIL') ?? 'orders@shopflow.in'
++
++  if (!resendApiKey) {
++    // Graceful degradation: log but don't fail the checkout
++    console.warn('RESEND_API_KEY not set — skipping email')
++    return new Response(JSON.stringify({ success: true, skipped: true, reason: 'Email not configured' }), {
++      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
++    })
++  }
++
++  try {
++    const { orderId } = await req.json()
++    if (!orderId) throw new Error('orderId is required')
++
++    // Fetch order details using service role
++    const supabase = createClient(
++      Deno.env.get('SUPABASE_URL')!,
++      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
++      { auth: { autoRefreshToken: false, persistSession: false } }
++    )
++
++    // Get order with items and user profile
++    const { data: order, error: orderErr } = await supabase
++      .from('orders')
++      .select(`
++        id, status, total_paise, payment_method, created_at,
++        order_items (title_snapshot, price_paise_snapshot, qty),
++        profiles!orders_user_id_fkey (full_name),
++        users:user_id (email)
++      `)
++      .eq('id', orderId)
++      .single()
++
++    if (orderErr || !order) throw new Error('Order not found')
++
++    // Get user email from auth.users via service role
++    const { data: authUser } = await supabase.auth.admin.getUserById(order.user_id ?? '')
++
++    const customerEmail = authUser?.user?.email
++    const customerName = (order.profiles as any)?.full_name ?? 'Valued Customer'
++
++    if (!customerEmail) throw new Error('Could not find customer email')
++
++    const emailHtml = buildEmailHTML({
++      customerName,
++      orderId: order.id,
++      orderStatus: order.status,
++      paymentMethod: order.payment_method,
++      items: (order.order_items as any[]).map(i => ({
++        title: i.title_snapshot,
++        qty: i.qty,
++        price_paise: i.price_paise_snapshot,
++      })),
++      totalPaise: order.total_paise,
++      createdAt: order.created_at,
++    })
++
++    // Send via Resend
++    const emailRes = await fetch('https://api.resend.com/emails', {
++      method: 'POST',
++      headers: {
++        'Authorization': `Bearer ${resendApiKey}`,
++        'Content-Type': 'application/json',
++      },
++      body: JSON.stringify({
++        from: fromEmail,
++        to: customerEmail,
++        subject: `Your ShopFlow Order #${order.id.slice(0, 8).toUpperCase()} is ${order.status === 'PAID' ? 'Confirmed' : 'Placed'}! 🛍️`,
++        html: emailHtml,
++      }),
++    })
++
++    if (!emailRes.ok) {
++      const err = await emailRes.json()
++      throw new Error(`Resend error: ${JSON.stringify(err)}`)
++    }
++
++    const result = await emailRes.json()
++    console.log('Email sent:', result.id)
++
++    return new Response(JSON.stringify({ success: true, emailId: result.id }), {
++      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
++    })
++
++  } catch (err: any) {
++    console.error('send-order-confirmation error:', err.message)
++    // Don't fail hard — email is non-critical, checkout already succeeded
++    return new Response(JSON.stringify({ success: false, error: err.message }), {
++      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' }
++    })
++  }
++})
+-- 
+2.43.0
+

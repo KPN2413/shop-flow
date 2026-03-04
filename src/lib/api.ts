@@ -4,10 +4,31 @@
  * stock validation, order creation, inventory decrement, and cart clearance
  * all happen in one transaction — if anything fails, everything rolls back.
  *
- * Rate limiting (max 5 checkouts per user per 10 min) is enforced inside
- * the PostgreSQL function itself — no extra services needed.
+ * After a successful checkout, fires the send-order-confirmation Edge Function
+ * to email the customer their order details (non-blocking — won't fail checkout).
  */
 import { supabase } from './supabase'
+
+const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string
+
+async function sendOrderConfirmationEmail(orderId: string): Promise<void> {
+  try {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session?.access_token || !SUPABASE_URL) return
+
+    // Fire and forget — email failure should never block the user
+    fetch(`${SUPABASE_URL}/functions/v1/send-order-confirmation`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({ orderId }),
+    }).catch(err => console.warn('Email notification failed (non-critical):', err))
+  } catch {
+    // Silently ignore — email is non-critical
+  }
+}
 
 export const api = {
   async checkout(paymentMethod: 'COD' | 'MOCK'): Promise<{ success: boolean; orderId?: string; error?: string }> {
@@ -38,6 +59,11 @@ export const api = {
         return { success: false, error: `Not enough stock for ${parts[1]}` }
       }
       return { success: false, error: msg }
+    }
+
+    // Checkout succeeded — fire confirmation email in background
+    if (result.order_id) {
+      sendOrderConfirmationEmail(result.order_id)
     }
 
     return { success: true, orderId: result.order_id }
