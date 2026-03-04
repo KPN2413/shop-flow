@@ -83,48 +83,31 @@ export function CheckoutPage() {
 
       const { razorpayOrderId, keyId } = await rzpRes.json()
 
-      // 3. First create our order in DB (pending payment)
-      const { data: { session } } = await supabase.auth.getSession()
-      const { data: dbOrder, error: dbErr } = await supabase
+      // 3. Create DB order using atomic RPC (handles stock, order_items, cart clear)
+      const rpcResult = await supabase.rpc('checkout_and_place_order', {
+        p_user_id: user.id,
+        p_payment_method: 'RAZORPAY',
+      })
+
+      if (rpcResult.error) throw new Error(rpcResult.error.message)
+      const rpcData = rpcResult.data as { success: boolean; order_id?: string; error?: string }
+      if (!rpcData.success) throw new Error(rpcData.error || 'Failed to create order')
+
+      const orderId = rpcData.order_id!
+
+      // 4. Attach razorpay_order_id to our DB order
+      await supabase
         .from('orders')
-        .insert({
-          user_id: user.id,
-          status: 'CREATED',
-          total_paise: grandTotal,
-          payment_method: 'RAZORPAY',
-          payment_status: 'PENDING',
-          razorpay_order_id: razorpayOrderId,
-        })
-        .select('id')
-        .single()
+        .update({ razorpay_order_id: razorpayOrderId, payment_status: 'PENDING' })
+        .eq('id', orderId)
 
-      if (dbErr || !dbOrder) throw new Error('Failed to create order')
-
-      // Create order items
-      const orderItems = items.map((item: any) => ({
-        order_id: dbOrder.id,
-        product_id: item.product_id,
-        title_snapshot: item.products?.title,
-        price_paise_snapshot: item.products?.price_paise,
-        qty: item.qty,
-      }))
-      await supabase.from('order_items').insert(orderItems)
-
-      // Decrement inventory
-      for (const item of items) {
-        await supabase.rpc('checkout_and_place_order', {
-          p_user_id: user.id,
-          p_payment_method: 'RAZORPAY',
-        })
-      }
-
-      // 4. Open Razorpay checkout widget
+      // 5. Open Razorpay checkout widget
       const options = {
         key: keyId,
         amount: grandTotal,
         currency: 'INR',
         name: 'ShopFlow',
-        description: `Order #${dbOrder.id.slice(0, 8).toUpperCase()}`,
+        description: `Order #${orderId.slice(0, 8).toUpperCase()}`,
         order_id: razorpayOrderId,
         prefill: {
           name: profile?.full_name || '',
@@ -141,9 +124,8 @@ export function CheckoutPage() {
               payment_status: 'SUCCESS',
               razorpay_payment_id: response.razorpay_payment_id,
             })
-            .eq('id', dbOrder.id)
+            .eq('id', orderId)
 
-          await supabase.from('cart_items').delete().eq('user_id', user.id)
           await refetch()
           toast.success('Payment successful! Order confirmed.')
           navigate({ to: '/account/orders' })
@@ -154,7 +136,7 @@ export function CheckoutPage() {
             await supabase
               .from('orders')
               .update({ status: 'FAILED', payment_status: 'FAILED' })
-              .eq('id', dbOrder.id)
+              .eq('id', orderId)
             setError('Payment cancelled. Your order was not placed.')
             setLoading(false)
           }
