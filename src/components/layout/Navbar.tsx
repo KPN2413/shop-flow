@@ -2,7 +2,6 @@ import { Link, useNavigate } from '@tanstack/react-router'
 import { ShoppingCart, User, Menu, X, Package, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../ui/button'
-import { Badge } from '../ui/badge'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,12 +59,12 @@ export function Navbar() {
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {itemCount > 0 && (
-                  <Badge
-                    className="absolute -right-1 -top-1 h-5 w-5 items-center justify-center rounded-full p-0 text-xs"
+                  <span
+                    className="absolute -right-1 -top-1 h-5 w-5 flex items-center justify-center rounded-full p-0 text-xs font-semibold"
                     style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
                   >
                     {itemCount > 99 ? '99+' : itemCount}
-                  </Badge>
+                  </span>
                 )}
               </Button>
             </Link>
@@ -128,12 +127,12 @@ export function Navbar() {
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
                 {itemCount > 0 && (
-                  <Badge
-                    className="absolute -right-1 -top-1 h-4 w-4 items-center justify-center rounded-full p-0 text-[10px]"
+                  <span
+                    className="absolute -right-1 -top-1 h-4 w-4 flex items-center justify-center rounded-full p-0 text-[10px] font-semibold"
                     style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
                   >
                     {itemCount}
-                  </Badge>
+                  </span>
                 )}
               </Button>
             </Link>

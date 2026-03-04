@@ -49,16 +49,16 @@ export function ProductCard({ product }: ProductCardProps) {
           )}
           {isOutOfStock && (
             <div className="absolute inset-0 flex items-center justify-center bg-black/50">
-              <Badge variant="destructive" className="text-sm font-semibold">Out of Stock</Badge>
+              <span className="inline-flex items-center rounded-md px-2.5 py-0.5 text-sm font-semibold bg-destructive text-destructive-foreground">Out of Stock</span>
             </div>
           )}
           {!isOutOfStock && stock <= 5 && (
-            <Badge
-              className="absolute top-2 right-2 text-xs"
+            <span
+              className="absolute top-2 right-2 inline-flex items-center rounded-md px-2.5 py-0.5 text-xs font-semibold"
               style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
             >
               Only {stock} left
-            </Badge>
+            </span>
           )}
         </div>
 

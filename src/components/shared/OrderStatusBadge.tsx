@@ -1,4 +1,4 @@
-import { Badge } from '../ui/badge'
+// Status badge components for orders, payments, and products
 
 type OrderStatus = 'CREATED' | 'PAID' | 'FAILED' | 'CANCELLED' | 'FULFILLED'
 type PaymentStatus = 'NOT_INITIATED' | 'PENDING' | 'SUCCESS' | 'FAILED'
@@ -21,18 +21,18 @@ const paymentStatusConfig: Record<PaymentStatus, { label: string; className: str
 export function OrderStatusBadge({ status }: { status: OrderStatus }) {
   const config = orderStatusConfig[status] ?? { label: status, className: '' }
   return (
-    <Badge className={`text-xs font-medium border-0 ${config.className}`}>
+    <span className={`inline-flex items-center rounded-md border-0 px-2.5 py-0.5 text-xs font-semibold ${config.className}`}>
       {config.label}
-    </Badge>
+    </span>
   )
 }
 
 export function PaymentStatusBadge({ status }: { status: PaymentStatus }) {
   const config = paymentStatusConfig[status] ?? { label: status, className: '' }
   return (
-    <Badge className={`text-xs font-medium border-0 ${config.className}`}>
+    <span className={`inline-flex items-center rounded-md border-0 px-2.5 py-0.5 text-xs font-semibold ${config.className}`}>
       {config.label}
-    </Badge>
+    </span>
   )
 }
 
@@ -43,8 +43,8 @@ export function ProductStatusBadge({ status }: { status: string }) {
     ARCHIVED: 'bg-gray-100 text-gray-700',
   }
   return (
-    <Badge className={`text-xs font-medium border-0 ${map[status] ?? ''}`}>
+    <span className={`inline-flex items-center rounded-md border-0 px-2.5 py-0.5 text-xs font-semibold ${map[status] ?? ''}`}>
       {status}
-    </Badge>
+    </span>
   )
 }

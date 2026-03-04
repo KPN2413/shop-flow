@@ -211,7 +211,8 @@ const routeTree = rootRoute.addChildren([
   ]),
 ])
 
-const router = createRouter({ routeTree })
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const router = createRouter({ routeTree: routeTree as any })
 
 declare module '@tanstack/react-router' {
   interface Register {
