@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Package, ChevronRight, Eye } from 'lucide-react'
+import { Package, ChevronRight, Eye, MapPin } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog'
@@ -110,6 +110,28 @@ export function OrdersPage() {
                 <Badge variant="outline">{selectedOrder.payment_status}</Badge>
               </div>
               <div className="text-sm text-muted-foreground">{formatDate(selectedOrder.created_at)}</div>
+
+              {/* Shipping address */}
+              {(selectedOrder as any).shipping_address && (
+                <>
+                  <Separator />
+                  <div>
+                    <div className="flex items-center gap-1.5 mb-1.5 text-sm font-medium">
+                      <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                      Delivery Address
+                    </div>
+                    <div className="text-sm text-muted-foreground leading-relaxed pl-5">
+                      {(() => {
+                        const a = (selectedOrder as any).shipping_address
+                        return [a.full_name, a.phone && `+91 ${a.phone}`, a.line1, a.line2, `${a.city}, ${a.state} - ${a.pincode}`].filter(Boolean).map((line, i) => (
+                          <div key={i}>{line}</div>
+                        ))
+                      })()}
+                    </div>
+                  </div>
+                </>
+              )}
+
               <Separator />
               <div className="space-y-2">
                 {selectedOrder.order_items.map(item => (
