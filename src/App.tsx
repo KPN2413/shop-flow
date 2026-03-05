@@ -23,8 +23,8 @@ import { CheckoutPage } from './pages/CheckoutPage'
 import { HealthPage } from './pages/HealthPage'
 
 // Auth pages
-import { LoginPage } from '../shopflow-fixes/src/pages/auth/LoginPage'
-import { SignupPage } from '../shopflow-fixes/src/pages/auth/SignupPage'
+import { LoginPage } from './pages/auth/LoginPage'
+import { SignupPage } from './pages/auth/SignupPage'
 import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
 import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 
@@ -264,4 +264,4 @@ export default function App() {
       </CartProvider>
     </AuthProvider>
   )
-} 
+}
