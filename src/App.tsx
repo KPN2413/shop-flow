@@ -9,6 +9,7 @@ import {
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './lib/auth-context'
 import { CartProvider } from './lib/cart-context'
+import { WishlistProvider } from './lib/wishlist-context'
 import { Navbar } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
 import { supabase } from './lib/supabase'
@@ -31,6 +32,7 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 // Account pages
 import { AccountPage } from './pages/account/AccountPage'
 import { OrdersPage } from './pages/account/OrdersPage'
+import { WishlistPage } from './pages/account/WishlistPage'
 
 // Admin pages
 import { AdminDashboard } from './pages/admin/AdminDashboard'
@@ -171,6 +173,12 @@ const ordersRoute = createRoute({
   component: OrdersPage,
 })
 
+const wishlistRoute = createRoute({
+  getParentRoute: () => storeLayoutRoute,
+  path: '/account/wishlist',
+  component: WishlistPage,
+})
+
 const healthRoute = createRoute({
   getParentRoute: () => storeLayoutRoute,
   path: '/health',
@@ -235,6 +243,7 @@ const routeTree = rootRoute.addChildren([
     resetPasswordRoute,
     accountRoute,
     ordersRoute,
+    wishlistRoute,
     healthRoute,
   ]),
   adminRootRoute.addChildren([
@@ -258,10 +267,12 @@ declare module '@tanstack/react-router' {
 export default function App() {
   return (
     <AuthProvider>
-      <CartProvider>
-        <RouterProvider router={router} />
-        <Analytics />
-      </CartProvider>
+      <WishlistProvider>
+        <CartProvider>
+          <RouterProvider router={router} />
+          <Analytics />
+        </CartProvider>
+      </WishlistProvider>
     </AuthProvider>
   )
 }

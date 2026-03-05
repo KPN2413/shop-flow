@@ -8,7 +8,7 @@ import {
 } from '@tanstack/react-router'
 import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './lib/auth-context'
-import { WishlistProvider } from '../../wishlist-feature/src/lib/wishlist-context'
+import { WishlistProvider } from '../lib/wishlist-context'
 import { CartProvider } from './lib/cart-context'
 import { Navbar } from '../../wishlist-feature/src/components/layout/Navbar/components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
