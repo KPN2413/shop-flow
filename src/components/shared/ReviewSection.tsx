@@ -125,12 +125,27 @@ export function ReviewSection({ productId }: Props) {
 
     const { data, count } = await supabase
       .from('reviews')
-      .select('*, profiles(full_name)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('product_id', productId)
       .order('created_at', { ascending: false })
       .range(from, to)
 
-    setReviews((data as Review[]) ?? [])
+    const rows = (data as Review[]) ?? []
+
+    // Enrich with profile names via a separate query
+    if (rows.length > 0) {
+      const userIds = [...new Set(rows.map(r => r.user_id))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds)
+      const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.user_id, p.full_name]))
+      rows.forEach(r => {
+        r.profiles = { full_name: profileMap[r.user_id] ?? null }
+      })
+    }
+
+    setReviews(rows)
     setTotal(count ?? 0)
     setLoading(false)
   }
@@ -175,15 +190,37 @@ export function ReviewSection({ productId }: Props) {
     setSubmitting(false)
 
     if (error) {
-      if (error.code === '23505') toast.error("You've already reviewed this product")
+      if (error.code === '23505') toast.error('You've already reviewed this product')
       else toast.error(error.message)
       return
     }
 
     toast.success(editingReview ? 'Review updated!' : 'Review submitted!')
     setDialogOpen(false)
+    // Force re-fetch regardless of current page
     setPage(1)
-    await fetchReviews()
+    // If already on page 1, useEffect won't re-run — call directly
+    setLoading(true)
+    const { data, count } = await supabase
+      .from('reviews')
+      .select('*', { count: 'exact' })
+      .eq('product_id', productId)
+      .order('created_at', { ascending: false })
+      .range(0, PAGE_SIZE - 1)
+
+    const rows = (data as Review[]) ?? []
+    if (rows.length > 0) {
+      const userIds = [...new Set(rows.map(r => r.user_id))]
+      const { data: profiles } = await supabase
+        .from('profiles')
+        .select('user_id, full_name')
+        .in('user_id', userIds)
+      const profileMap = Object.fromEntries((profiles ?? []).map(p => [p.user_id, p.full_name]))
+      rows.forEach(r => { r.profiles = { full_name: profileMap[r.user_id] ?? null } })
+    }
+    setReviews(rows)
+    setTotal(count ?? 0)
+    setLoading(false)
   }
 
   // ── Delete review ──────────────────────────────────────────────────────────
