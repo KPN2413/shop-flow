@@ -1,5 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ShoppingCart, User, Menu, X, Package, LayoutDashboard, LogOut, ChevronDown } from 'lucide-react'
+import { ShoppingCart, User, Menu, X, Package, LayoutDashboard, LogOut, ChevronDown, Heart } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '../ui/button'
 import {
@@ -11,10 +11,12 @@ import {
 } from '../ui/dropdown-menu'
 import { useAuth } from '@/lib/auth-context'
 import { useCart } from '@/lib/cart-context'
+import { useWishlist } from '@/lib/wishlist-context'
 
 export function Navbar() {
   const { user, profile, isAdmin, signOut } = useAuth()
   const { itemCount } = useCart()
+  const { itemCount: wishlistCount } = useWishlist()
   const navigate = useNavigate()
   const [mobileOpen, setMobileOpen] = useState(false)
 
@@ -55,6 +57,21 @@ export function Navbar() {
 
           {/* Desktop Actions */}
           <div className="hidden items-center gap-2 md:flex">
+            {user && (
+              <Link to="/account/wishlist">
+                <Button variant="ghost" size="icon" className="relative" title="My Wishlist">
+                  <Heart className={`h-5 w-5 ${wishlistCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
+                  {wishlistCount > 0 && (
+                    <span
+                      className="absolute -right-1 -top-1 h-5 w-5 flex items-center justify-center rounded-full p-0 text-xs font-semibold"
+                      style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
+                    >
+                      {wishlistCount > 99 ? '99+' : wishlistCount}
+                    </span>
+                  )}
+                </Button>
+              </Link>
+            )}
             <Link to="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />
@@ -86,6 +103,14 @@ export function Navbar() {
                   <DropdownMenuItem asChild>
                     <Link to="/account" className="flex items-center gap-2">
                       <User className="h-4 w-4" /> My Account
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link to="/account/wishlist" className="flex items-center gap-2">
+                      <Heart className="h-4 w-4" /> My Wishlist
+                      {wishlistCount > 0 && (
+                        <span className="ml-auto text-xs font-medium text-muted-foreground">{wishlistCount}</span>
+                      )}
                     </Link>
                   </DropdownMenuItem>
                   {isAdmin && (
@@ -151,6 +176,10 @@ export function Navbar() {
               {user ? (
                 <>
                   <Link to="/account" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>My Account</Link>
+                  <Link to="/account/wishlist" className="px-2 py-2 text-sm font-medium flex items-center gap-2" onClick={() => setMobileOpen(false)}>
+                    <Heart className={`h-4 w-4 ${wishlistCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
+                    My Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
+                  </Link>
                   {isAdmin && (
                     <Link to="/admin" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Admin Dashboard</Link>
                   )}

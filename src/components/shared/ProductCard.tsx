@@ -1,10 +1,11 @@
 import React from 'react'
 import { Link } from '@tanstack/react-router'
-import { ShoppingCart, Package } from 'lucide-react'
+import { ShoppingCart, Package, Heart } from 'lucide-react'
 import { Button } from '../ui/button'
 import { formatINR } from '@/lib/format'
 import { useCart } from '@/lib/cart-context'
 import { useAuth } from '@/lib/auth-context'
+import { useWishlist } from '@/lib/wishlist-context'
 import { toast } from 'react-hot-toast'
 import type { ProductWithCategory } from '@/lib/database.types'
 
@@ -15,6 +16,8 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const { addToCart } = useCart()
   const { user } = useAuth()
+  const { isWishlisted, toggle } = useWishlist()
+  const wishlisted = isWishlisted(product.id)
   const invData = product.inventory as any
   const stock = Array.isArray(invData) ? (invData[0]?.stock ?? 0) : (invData?.stock ?? 0)
   const isOutOfStock = stock === 0
@@ -59,6 +62,25 @@ export function ProductCard({ product }: ProductCardProps) {
             >
               Only {stock} left
             </span>
+          )}
+
+          {/* Wishlist heart button */}
+          {user && (
+            <button
+              onClick={async (e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                await toggle(product.id)
+              }}
+              className={`absolute top-2 left-2 w-8 h-8 rounded-full flex items-center justify-center transition-all duration-200 shadow-sm
+                ${wishlisted
+                  ? 'bg-red-500 text-white scale-110'
+                  : 'bg-white/90 text-muted-foreground hover:bg-white hover:text-red-500 opacity-0 group-hover:opacity-100'
+                }`}
+              title={wishlisted ? 'Remove from wishlist' : 'Save to wishlist'}
+            >
+              <Heart className={`w-4 h-4 ${wishlisted ? 'fill-white' : ''}`} />
+            </button>
           )}
         </div>
 

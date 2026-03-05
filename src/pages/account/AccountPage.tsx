@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { User, Phone, Mail, Save, LogOut } from 'lucide-react'
+import { User, Phone, Mail, Save, LogOut, Heart } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Input } from '../../components/ui/input'
 import { Label } from '../../components/ui/label'
@@ -113,6 +113,11 @@ export function AccountPage() {
         <div className="grid grid-cols-2 gap-3">
           <Button variant="outline" asChild>
             <Link to="/account/orders">My Orders</Link>
+          </Button>
+          <Button variant="outline" asChild>
+            <Link to="/account/wishlist" className="flex items-center gap-2">
+              <Heart className="h-4 w-4" /> My Wishlist
+            </Link>
           </Button>
           <Button variant="outline" asChild>
             <Link to="/shop">Continue Shopping</Link>

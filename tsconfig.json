@@ -33,6 +33,6 @@
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"],
+  "include": ["src", "wishlist-feature/src/App.tsx"],
   "references": [{ "path": "./tsconfig.node.json" }]
 } 
