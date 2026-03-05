@@ -11,6 +11,7 @@ import { AuthProvider } from './lib/auth-context'
 import { CartProvider } from './lib/cart-context'
 import { Navbar } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
+import { supabase } from './lib/supabase'
 
 // Public pages
 import { HomePage } from './pages/HomePage'
@@ -22,8 +23,10 @@ import { CheckoutPage } from './pages/CheckoutPage'
 import { HealthPage } from './pages/HealthPage'
 
 // Auth pages
-import { LoginPage } from './pages/auth/LoginPage'
-import { SignupPage } from './pages/auth/SignupPage'
+import { LoginPage } from '../shopflow-fixes/src/pages/auth/LoginPage'
+import { SignupPage } from '../shopflow-fixes/src/pages/auth/SignupPage'
+import { ForgotPasswordPage } from './pages/auth/ForgotPasswordPage'
+import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 
 // Account pages
 import { AccountPage } from './pages/account/AccountPage'
@@ -56,6 +59,24 @@ function StoreLayout() {
 function AdminRoot() {
   return <Outlet />
 }
+
+// ─── Admin auth guard ────────────────────────────────────────────────────────
+// Runs before every /admin/* route. No session → /login. Non-admin → /.
+async function requireAdmin() {
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    throw redirect({ to: '/login' })
+  }
+  const { data: profile } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('user_id', session.user.id)
+    .single()
+  if (!profile || profile.role !== 'ADMIN') {
+    throw redirect({ to: '/' })
+  }
+}
+// ─────────────────────────────────────────────────────────────────────────────
 
 // Route tree
 const rootRoute = createRootRoute({
@@ -126,6 +147,18 @@ const signupRoute = createRoute({
   component: SignupPage,
 })
 
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => storeLayoutRoute,
+  path: '/forgot-password',
+  component: ForgotPasswordPage,
+})
+
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => storeLayoutRoute,
+  path: '/reset-password',
+  component: ResetPasswordPage,
+})
+
 const accountRoute = createRoute({
   getParentRoute: () => storeLayoutRoute,
   path: '/account',
@@ -144,11 +177,12 @@ const healthRoute = createRoute({
   component: HealthPage,
 })
 
-// Admin routes (standalone — AdminLayout wraps each page with sidebar)
+// Admin routes — ALL protected by requireAdmin beforeLoad guard
 const adminRootRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/admin',
   component: AdminRoot,
+  beforeLoad: requireAdmin,   // ← fires before any /admin/* route renders
 })
 
 const adminIndexRoute = createRoute({
@@ -197,6 +231,8 @@ const routeTree = rootRoute.addChildren([
     checkoutRoute,
     loginRoute,
     signupRoute,
+    forgotPasswordRoute,
+    resetPasswordRoute,
     accountRoute,
     ordersRoute,
     healthRoute,

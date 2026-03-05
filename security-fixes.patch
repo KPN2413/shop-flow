@@ -1,0 +1,220 @@
+diff --git a/.gitignore b/.gitignore
+index a547bf3..c81ab9f 100644
+--- a/.gitignore
++++ b/.gitignore
+@@ -22,3 +22,11 @@ dist-ssr
+ *.njsproj
+ *.sln
+ *.sw?
++
++# Environment files — NEVER commit real secrets
++.env
++.env.local
++.env.*.local
++.env.production
++# Keep .env.example (it has placeholder values, no secrets)
++!.env.example
+diff --git a/src/App.tsx b/src/App.tsx
+index 6e2e68d..d9c4470 100644
+--- a/src/App.tsx
++++ b/src/App.tsx
+@@ -11,6 +11,7 @@ import { AuthProvider } from './lib/auth-context'
+ import { CartProvider } from './lib/cart-context'
+ import { Navbar } from './components/layout/Navbar'
+ import { Footer } from './components/layout/Footer'
++import { supabase } from './lib/supabase'
+ 
+ // Public pages
+ import { HomePage } from './pages/HomePage'
+@@ -57,6 +58,24 @@ function AdminRoot() {
+   return <Outlet />
+ }
+ 
++// ─── Admin auth guard ────────────────────────────────────────────────────────
++// Runs before every /admin/* route. No session → /login. Non-admin → /.
++async function requireAdmin() {
++  const { data: { session } } = await supabase.auth.getSession()
++  if (!session) {
++    throw redirect({ to: '/login' })
++  }
++  const { data: profile } = await supabase
++    .from('profiles')
++    .select('role')
++    .eq('user_id', session.user.id)
++    .single()
++  if (!profile || profile.role !== 'ADMIN') {
++    throw redirect({ to: '/' })
++  }
++}
++// ─────────────────────────────────────────────────────────────────────────────
++
+ // Route tree
+ const rootRoute = createRootRoute({
+   component: () => (
+@@ -144,11 +163,12 @@ const healthRoute = createRoute({
+   component: HealthPage,
+ })
+ 
+-// Admin routes (standalone — AdminLayout wraps each page with sidebar)
++// Admin routes — ALL protected by requireAdmin beforeLoad guard
+ const adminRootRoute = createRoute({
+   getParentRoute: () => rootRoute,
+   path: '/admin',
+   component: AdminRoot,
++  beforeLoad: requireAdmin,   // ← fires before any /admin/* route renders
+ })
+ 
+ const adminIndexRoute = createRoute({
+diff --git a/supabase/functions/admin-inventory/index.ts b/supabase/functions/admin-inventory/index.ts
+index 206fdd3..3a4383b 100644
+--- a/supabase/functions/admin-inventory/index.ts
++++ b/supabase/functions/admin-inventory/index.ts
+@@ -1,7 +1,9 @@
+ import { createClient } from 'npm:@supabase/supabase-js@2'
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+ }
+diff --git a/supabase/functions/admin-product-update/index.ts b/supabase/functions/admin-product-update/index.ts
+index 8b49aee..90922e8 100644
+--- a/supabase/functions/admin-product-update/index.ts
++++ b/supabase/functions/admin-product-update/index.ts
+@@ -1,7 +1,9 @@
+ import { createClient } from 'npm:@supabase/supabase-js@2'
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+   'Access-Control-Allow-Methods': 'PATCH, OPTIONS',
+ }
+diff --git a/supabase/functions/admin-products/index.ts b/supabase/functions/admin-products/index.ts
+index 6a51e6e..8243b03 100644
+--- a/supabase/functions/admin-products/index.ts
++++ b/supabase/functions/admin-products/index.ts
+@@ -1,7 +1,9 @@
+ import { createClient } from 'npm:@supabase/supabase-js@2'
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+   'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+ }
+diff --git a/supabase/functions/api-admin/index.ts b/supabase/functions/api-admin/index.ts
+index e1bdcbe..7b6fc54 100644
+--- a/supabase/functions/api-admin/index.ts
++++ b/supabase/functions/api-admin/index.ts
+@@ -1,7 +1,9 @@
+ import { createClient } from "npm:@supabase/supabase-js@2"
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  "Access-Control-Allow-Origin": "*",
++  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+ }
+diff --git a/supabase/functions/api-checkout/index.ts b/supabase/functions/api-checkout/index.ts
+index 95762da..5f315e1 100644
+--- a/supabase/functions/api-checkout/index.ts
++++ b/supabase/functions/api-checkout/index.ts
+@@ -1,7 +1,9 @@
+ import { createClient } from "npm:@supabase/supabase-js@2"
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  "Access-Control-Allow-Origin": "*",
++  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+   "Access-Control-Allow-Methods": "POST, OPTIONS",
+ }
+diff --git a/supabase/functions/api-products/index.ts b/supabase/functions/api-products/index.ts
+index 69bd430..f3bbe20 100644
+--- a/supabase/functions/api-products/index.ts
++++ b/supabase/functions/api-products/index.ts
+@@ -1,7 +1,9 @@
+ import { createClient } from "npm:@supabase/supabase-js@2"
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  "Access-Control-Allow-Origin": "*",
++  "Access-Control-Allow-Origin": ALLOWED_ORIGIN,
+   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+   "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+ }
+diff --git a/supabase/functions/checkout/index.ts b/supabase/functions/checkout/index.ts
+index c957d12..d8b036f 100644
+--- a/supabase/functions/checkout/index.ts
++++ b/supabase/functions/checkout/index.ts
+@@ -1,7 +1,9 @@
+ import { createClient } from 'npm:@supabase/supabase-js@2'
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+ }
+diff --git a/supabase/functions/create-razorpay-order/index.ts b/supabase/functions/create-razorpay-order/index.ts
+index 13b52be..146c39d 100644
+--- a/supabase/functions/create-razorpay-order/index.ts
++++ b/supabase/functions/create-razorpay-order/index.ts
+@@ -13,8 +13,10 @@
+  * 5. User pays → Razorpay calls webhook → order confirmed
+  */
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+ }
+diff --git a/supabase/functions/razorpay-webhook/index.ts b/supabase/functions/razorpay-webhook/index.ts
+index 3a065c6..9fd559d 100644
+--- a/supabase/functions/razorpay-webhook/index.ts
++++ b/supabase/functions/razorpay-webhook/index.ts
+@@ -16,8 +16,10 @@
+ 
+ import { createClient } from 'npm:@supabase/supabase-js@2'
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-razorpay-signature',
+   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+ }
+diff --git a/supabase/functions/send-order-confirmation/index.ts b/supabase/functions/send-order-confirmation/index.ts
+index 4ccadf5..9a4ef7d 100644
+--- a/supabase/functions/send-order-confirmation/index.ts
++++ b/supabase/functions/send-order-confirmation/index.ts
+@@ -10,8 +10,10 @@
+ 
+ import { createClient } from 'npm:@supabase/supabase-js@2'
+ 
++const ALLOWED_ORIGIN = Deno.env.get('ALLOWED_ORIGIN') ?? '*'
++
+ const corsHeaders = {
+-  'Access-Control-Allow-Origin': '*',
++  'Access-Control-Allow-Origin': ALLOWED_ORIGIN,
+   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+ }

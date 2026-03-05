@@ -49,3 +49,15 @@ export async function isAdmin(): Promise<boolean> {
   const profile = await getCurrentProfile()
   return profile?.role === 'ADMIN'
 }
+
+export async function sendPasswordResetEmail(email: string) {
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${window.location.origin}/reset-password`,
+  })
+  return { error }
+}
+
+export async function updatePassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword })
+  return { error }
+}
