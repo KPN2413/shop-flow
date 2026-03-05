@@ -175,7 +175,7 @@ export function ReviewSection({ productId }: Props) {
     setSubmitting(false)
 
     if (error) {
-      if (error.code === '23505') toast.error('You've already reviewed this product')
+      if (error.code === '23505') toast.error("You've already reviewed this product")
       else toast.error(error.message)
       return
     }
