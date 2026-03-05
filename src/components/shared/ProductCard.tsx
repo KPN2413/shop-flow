@@ -1,12 +1,13 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { Link } from '@tanstack/react-router'
-import { ShoppingCart, Package, Heart } from 'lucide-react'
+import { ShoppingCart, Package, Heart, Star } from 'lucide-react'
 import { Button } from '../ui/button'
 import { formatINR } from '@/lib/format'
 import { useCart } from '@/lib/cart-context'
 import { useAuth } from '@/lib/auth-context'
 import { useWishlist } from '@/lib/wishlist-context'
 import { toast } from 'react-hot-toast'
+import { supabase } from '@/lib/supabase'
 import type { ProductWithCategory } from '@/lib/database.types'
 
 interface ProductCardProps {
@@ -18,6 +19,24 @@ export function ProductCard({ product }: ProductCardProps) {
   const { user } = useAuth()
   const { isWishlisted, toggle } = useWishlist()
   const wishlisted = isWishlisted(product.id)
+
+  const [avgRating, setAvgRating] = useState<number | null>(null)
+  const [reviewCount, setReviewCount] = useState(0)
+
+  useEffect(() => {
+    supabase
+      .from('reviews')
+      .select('rating')
+      .eq('product_id', product.id)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          const avg = data.reduce((s, r) => s + r.rating, 0) / data.length
+          setAvgRating(avg)
+          setReviewCount(data.length)
+        }
+      })
+  }, [product.id])
+
   const invData = product.inventory as any
   const stock = Array.isArray(invData) ? (invData[0]?.stock ?? 0) : (invData?.stock ?? 0)
   const isOutOfStock = stock === 0
@@ -91,10 +110,22 @@ export function ProductCard({ product }: ProductCardProps) {
               {product.categories.name}
             </p>
           )}
-          <h3 className="font-semibold text-foreground line-clamp-2 text-sm leading-snug mb-2" style={{ fontFamily: 'var(--font-heading)' }}>
+          <h3 className="font-semibold text-foreground line-clamp-2 text-sm leading-snug mb-1.5" style={{ fontFamily: 'var(--font-heading)' }}>
             {product.title}
           </h3>
-          <div className="flex items-center justify-between gap-2 mt-3">
+          {avgRating !== null ? (
+            <div className="flex items-center gap-1 mb-2">
+              <div className="flex items-center gap-0.5">
+                {[1,2,3,4,5].map(i => (
+                  <Star key={i} className={`w-3 h-3 ${i <= Math.round(avgRating) ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted-foreground/30'}`} />
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">({reviewCount})</span>
+            </div>
+          ) : (
+            <div className="mb-2 h-4" />
+          )}
+          <div className="flex items-center justify-between gap-2 mt-1">
             <span className="price-inr text-lg text-foreground">
               {formatINR(product.price_paise)}
             </span>

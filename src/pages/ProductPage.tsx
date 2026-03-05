@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, Link } from '@tanstack/react-router'
-import { ShoppingCart, ArrowLeft, Package, Minus, Plus } from 'lucide-react'
+import { ShoppingCart, ArrowLeft, Package, Minus, Plus, Heart, Star } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
@@ -8,17 +8,22 @@ import { supabase } from '@/lib/supabase'
 import { formatINR } from '@/lib/format'
 import { useCart } from '@/lib/cart-context'
 import { useAuth } from '@/lib/auth-context'
+import { useWishlist } from '@/lib/wishlist-context'
 import { toast } from 'react-hot-toast'
 import type { ProductWithCategory } from '@/lib/database.types'
+import { ReviewSection } from '@/components/shared/ReviewSection'
 
 export function ProductPage() {
   const { slug } = useParams({ strict: false }) as { slug: string }
   const { addToCart } = useCart()
   const { user } = useAuth()
+  const { isWishlisted, toggle } = useWishlist()
   const [product, setProduct] = useState<ProductWithCategory | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [qty, setQty] = useState(1)
   const [adding, setAdding] = useState(false)
+  const [avgRating, setAvgRating] = useState<number | null>(null)
+  const [reviewCount, setReviewCount] = useState(0)
 
   useEffect(() => {
     async function fetchProduct() {
@@ -35,6 +40,20 @@ export function ProductPage() {
     }
     fetchProduct()
   }, [slug])
+
+  useEffect(() => {
+    if (!product) return
+    supabase
+      .from('reviews')
+      .select('rating')
+      .eq('product_id', product.id)
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setAvgRating(data.reduce((s, r) => s + r.rating, 0) / data.length)
+          setReviewCount(data.length)
+        }
+      })
+  }, [product])
 
   async function handleAddToCart() {
     if (!user) { toast.error('Please sign in to add items to cart'); return }
@@ -132,6 +151,19 @@ export function ProductPage() {
             )}
           </div>
 
+          {/* Avg rating */}
+          {avgRating !== null && (
+            <div className="flex items-center gap-2 mt-3">
+              <div className="flex items-center gap-0.5">
+                {[1,2,3,4,5].map(i => (
+                  <Star key={i} className={`w-4 h-4 ${i <= Math.round(avgRating) ? 'fill-amber-400 text-amber-400' : 'fill-muted text-muted-foreground/30'}`} />
+                ))}
+              </div>
+              <span className="text-sm font-medium">{avgRating.toFixed(1)}</span>
+              <span className="text-sm text-muted-foreground">({reviewCount} {reviewCount === 1 ? 'review' : 'reviews'})</span>
+            </div>
+          )}
+
           <Separator className="my-6" />
 
           {product.description && (
@@ -177,6 +209,17 @@ export function ProductPage() {
               <ShoppingCart className="h-4 w-4" />
               {adding ? 'Adding...' : isOutOfStock ? 'Out of Stock' : 'Add to Cart'}
             </Button>
+            {user && (
+              <Button
+                size="lg"
+                variant="outline"
+                onClick={() => toggle(product!.id)}
+                className={isWishlisted(product!.id) ? 'border-red-300 bg-red-50 text-red-500 hover:bg-red-100' : 'hover:border-red-300 hover:text-red-500'}
+                title={isWishlisted(product!.id) ? 'Remove from wishlist' : 'Save to wishlist'}
+              >
+                <Heart className={`h-4 w-4 ${isWishlisted(product!.id) ? 'fill-red-500' : ''}`} />
+              </Button>
+            )}
             {!isOutOfStock && (
               <Link to="/cart">
                 <Button size="lg" variant="outline">View Cart</Button>
@@ -189,6 +232,8 @@ export function ProductPage() {
           </p>
         </div>
       </div>
+      {/* Reviews */}
+      <ReviewSection productId={product.id} />
     </main>
   )
 }
