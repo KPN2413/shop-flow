@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Package, ChevronRight, Eye, MapPin } from 'lucide-react'
+import { Package, ChevronRight, Eye, MapPin, ExternalLink } from 'lucide-react'
 import { Button } from '../../components/ui/button'
 import { Badge } from '../../components/ui/badge'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog'
@@ -87,9 +87,16 @@ export function OrdersPage() {
                   <div className="font-bold price-tag text-lg">{formatINR(order.total_paise)}</div>
                   <div className="text-xs text-muted-foreground mt-0.5">{formatDate(order.created_at)}</div>
                 </div>
-                <Button variant="outline" size="sm" onClick={() => openOrder(order)}>
-                  <Eye className="w-3.5 h-3.5 mr-1.5" />View
-                </Button>
+                <div className="flex items-center gap-2">
+                  <Button variant="outline" size="sm" asChild>
+                    <Link to="/account/orders/$orderId" params={{ orderId: order.id }}>
+                      <ExternalLink className="w-3.5 h-3.5 mr-1.5" />Track
+                    </Link>
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => openOrder(order)}>
+                    <Eye className="w-3.5 h-3.5 mr-1.5" />Details
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
