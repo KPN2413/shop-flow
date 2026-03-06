@@ -11,7 +11,7 @@ import { Separator } from '../components/ui/separator'
 import { formatINR } from '../lib/format'
 import { useCart } from '../lib/cart-context'
 import { useAuth } from '../lib/auth-context'
-import { api, sendOrderConfirmationEmail } from '../../email-feature/src/lib/api'
+import { api, sendOrderConfirmationEmail } from '../lib/api'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
