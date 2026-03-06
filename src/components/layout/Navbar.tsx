@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '../ui/dropdown-menu'
 import { useAuth } from '@/lib/auth-context'
+import { SearchBar } from '@/components/shared/SearchBar'
 import { useCart } from '@/lib/cart-context'
 import { useWishlist } from '@/lib/wishlist-context'
 
@@ -54,6 +55,11 @@ export function Navbar() {
               Categories
             </Link>
           </nav>
+
+          {/* Desktop Search */}
+          <div className="hidden md:flex flex-1 max-w-sm mx-4">
+            <SearchBar className="w-full" placeholder="Search products…" />
+          </div>
 
           {/* Desktop Actions */}
           <div className="hidden items-center gap-2 md:flex">
@@ -148,6 +154,7 @@ export function Navbar() {
 
           {/* Mobile toggle */}
           <div className="flex items-center gap-2 md:hidden">
+            <SearchBar collapsible />
             <Link to="/cart">
               <Button variant="ghost" size="icon" className="relative">
                 <ShoppingCart className="h-5 w-5" />

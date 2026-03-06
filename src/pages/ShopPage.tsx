@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
-import { Search, SlidersHorizontal } from 'lucide-react'
-import { Input } from '../components/ui/input'
+import { SlidersHorizontal } from 'lucide-react'
+import { SearchBar } from '../components/shared/SearchBar'
 import { Button } from '../components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Badge } from '../components/ui/badge'
@@ -68,13 +68,10 @@ export function ShopPage() {
       </div>
 
       <div className="flex flex-col sm:flex-row gap-3 mb-8">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Search products..."
-            className="pl-9"
-            value={search}
-            onChange={e => setSearch(e.target.value)}
+        <div className="flex-1">
+          <SearchBar
+            className="w-full"
+            placeholder="Search products…"
           />
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
