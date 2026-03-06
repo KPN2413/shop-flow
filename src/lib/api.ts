@@ -12,7 +12,7 @@ import { supabase } from './supabase'
 const SUPABASE_URL = (import.meta as any).env?.VITE_SUPABASE_URL as string
 const SUPABASE_ANON_KEY = (import.meta as any).env?.VITE_SUPABASE_ANON_KEY as string
 
-async function sendOrderConfirmationEmail(orderId: string): Promise<void> {
+export async function sendOrderConfirmationEmail(orderId: string): Promise<void> {
   try {
     if (!SUPABASE_URL || !SUPABASE_ANON_KEY) return
 

@@ -32,8 +32,12 @@ function buildEmailHTML(data: {
   orderStatus: string
   paymentMethod: string
   items: Array<{ title: string; qty: number; price_paise: number }>
+  subtotalPaise: number
+  discountPaise: number
+  couponCode: string | null
   totalPaise: number
   createdAt: string
+  shippingAddress: any | null
 }): string {
   const itemRows = data.items
     .map(
@@ -51,7 +55,7 @@ function buildEmailHTML(data: {
 
   const statusColor = data.orderStatus === 'PAID' ? '#16a34a' : '#2563eb'
   const statusLabel = data.orderStatus === 'PAID' ? 'Payment Confirmed' : 'Order Received'
-  const paymentLabel = data.paymentMethod === 'COD' ? 'Cash on Delivery' : 'Online Payment'
+  const paymentLabel = data.paymentMethod === 'COD' ? 'Cash on Delivery' : data.paymentMethod === 'MOCK' ? 'Demo Payment' : 'Online Payment (Razorpay)'
 
   return `<!DOCTYPE html>
 <html>
@@ -117,15 +121,44 @@ function buildEmailHTML(data: {
               <tbody>${itemRows}</tbody>
             </table>
 
-            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;padding-top:16px;border-top:2px solid #1C2A47;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:16px;padding-top:12px;border-top:1px solid #e5e7eb;">
+              <tr>
+                <td style="font-size:14px;color:#666;padding-bottom:6px;">Subtotal</td>
+                <td style="font-size:14px;color:#333;text-align:right;padding-bottom:6px;">${formatINR(data.subtotalPaise)}</td>
+              </tr>
+              <tr>
+                <td style="font-size:14px;color:#16a34a;padding-bottom:6px;">Shipping</td>
+                <td style="font-size:14px;color:#16a34a;text-align:right;padding-bottom:6px;">Free</td>
+              </tr>
+              \${data.discountPaise > 0 && data.couponCode ? \`<tr>
+                <td style="font-size:14px;color:#16a34a;padding-bottom:6px;">🏷 Coupon (\${data.couponCode})</td>
+                <td style="font-size:14px;color:#16a34a;text-align:right;padding-bottom:6px;">− \${formatINR(data.discountPaise)}</td>
+              </tr>\` : ''}
+            </table>
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;padding-top:12px;border-top:2px solid #1C2A47;">
               <tr>
                 <td style="font-size:16px;font-weight:700;color:#1C2A47;">Total</td>
                 <td style="font-size:20px;font-weight:700;color:#FF6B35;text-align:right;">${formatINR(data.totalPaise)}</td>
               </tr>
             </table>
 
-            <p style="margin:40px 0 0;font-size:13px;color:#999;text-align:center;line-height:1.5;">
-              <a href="https://shop-flow-eight.vercel.app" style="color:#FF6B35;text-decoration:none;">shop-flow-eight.vercel.app</a>
+            \${data.shippingAddress ? \`
+            <h3 style="margin:32px 0 12px;font-size:15px;font-weight:700;color:#1C2A47;">📍 Delivery Address</h3>
+            <div style="background:#f8fafc;border-radius:8px;padding:16px;font-size:14px;color:#555;line-height:1.8;">
+              \${[data.shippingAddress.full_name, data.shippingAddress.phone ? '+91 ' + data.shippingAddress.phone : null, data.shippingAddress.line1, data.shippingAddress.line2, [data.shippingAddress.city, data.shippingAddress.state, data.shippingAddress.pincode].filter(Boolean).join(', ')].filter(Boolean).map(l => '<div>' + l + '</div>').join('')}
+            </div>\` : ''}
+
+            <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;">
+              <tr><td align="center">
+                <a href="https://shop-flow-eight.vercel.app/account/orders/\${data.orderId}"
+                   style="display:inline-block;background:#FF6B35;color:#fff;text-decoration:none;font-weight:600;font-size:14px;padding:14px 32px;border-radius:8px;">
+                  Track Your Order →
+                </a>
+              </td></tr>
+            </table>
+
+            <p style="margin:32px 0 0;font-size:12px;color:#bbb;text-align:center;line-height:1.6;">
+              Questions? Visit <a href="https://shop-flow-eight.vercel.app" style="color:#FF6B35;text-decoration:none;">shop-flow-eight.vercel.app</a>
             </p>
           </td>
         </tr>
@@ -171,6 +204,7 @@ Deno.serve(async (req: Request) => {
       .from('orders')
       .select(`
   id, user_id, status, total_paise, payment_method, created_at,
+  coupon_code, discount_paise, shipping_address,
   order_items (title_snapshot, price_paise_snapshot, qty)
 `)
       .eq('id', orderId)
@@ -185,8 +219,18 @@ Deno.serve(async (req: Request) => {
     if (authErr) throw new Error(`Auth lookup failed: ${authErr.message}`)
 
     const customerEmail = authUser?.user?.email
-    const customerName = 'Valued Customer'
+    // Get customer name from profile
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('user_id', order.user_id)
+      .single()
+    const customerName = profile?.full_name || (order as any).shipping_address?.full_name || 'Valued Customer'
     if (!customerEmail) throw new Error('Could not find customer email')
+
+    const subtotalPaise = (order.order_items as any[]).reduce(
+      (sum: number, i: any) => sum + i.price_paise_snapshot * i.qty, 0
+    )
 
     const emailHtml = buildEmailHTML({
       customerName,
@@ -198,8 +242,12 @@ Deno.serve(async (req: Request) => {
         qty: i.qty,
         price_paise: i.price_paise_snapshot,
       })),
+      subtotalPaise,
+      discountPaise: (order as any).discount_paise ?? 0,
+      couponCode: (order as any).coupon_code ?? null,
       totalPaise: order.total_paise,
       createdAt: order.created_at,
+      shippingAddress: (order as any).shipping_address ?? null,
     })
 
     const emailRes = await fetch('https://api.resend.com/emails', {
@@ -233,4 +281,4 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   }
-})
+})

@@ -11,7 +11,7 @@ import { Separator } from '../components/ui/separator'
 import { formatINR } from '../lib/format'
 import { useCart } from '../lib/cart-context'
 import { useAuth } from '../lib/auth-context'
-import { api } from '../lib/api'
+import { api, sendOrderConfirmationEmail } from '../../email-feature/src/lib/api'
 import { supabase } from '../lib/supabase'
 import toast from 'react-hot-toast'
 
@@ -220,6 +220,7 @@ export function CheckoutPage() {
         theme: { color: '#FF6B35' },
         handler: async (response: any) => {
           await supabase.from('orders').update({ status: 'PAID', payment_status: 'SUCCESS', razorpay_payment_id: response.razorpay_payment_id }).eq('id', orderId)
+          sendOrderConfirmationEmail(orderId) // fire-and-forget
           await refetch()
           toast.success('Payment successful! Order confirmed. 🎉')
           navigate({ to: '/account/orders' })
