@@ -42,6 +42,7 @@ import { AdminCategories } from './pages/admin/AdminCategories'
 import { AdminInventory } from './pages/admin/AdminInventory'
 import { AdminOrders } from './pages/admin/AdminOrders'
 import { AdminSeedPage } from './pages/admin/AdminSeedPage'
+import { AdminCoupons } from './pages/admin/AdminCoupons'
 
 import { Analytics } from '@vercel/analytics/react';
 
@@ -236,6 +237,12 @@ const adminSeedRoute = createRoute({
   component: AdminSeedPage,
 })
 
+const adminCouponsRoute = createRoute({
+  getParentRoute: () => adminRootRoute,
+  path: '/coupons',
+  component: AdminCoupons,
+})
+
 const routeTree = rootRoute.addChildren([
   storeLayoutRoute.addChildren([
     indexRoute,
@@ -261,6 +268,7 @@ const routeTree = rootRoute.addChildren([
     adminInventoryRoute,
     adminOrdersRoute,
     adminSeedRoute,
+    adminCouponsRoute,
   ]),
 ])
 

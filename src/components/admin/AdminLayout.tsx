@@ -14,6 +14,7 @@ const adminNav = [
   { href: '/admin/inventory', label: 'Inventory', icon: Warehouse },
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/seed', label: 'Add Products', icon: Sparkles },
+  { href: '/admin/coupons', label: 'Coupons', icon: Tag },
 ]
 
 interface AdminLayoutProps {

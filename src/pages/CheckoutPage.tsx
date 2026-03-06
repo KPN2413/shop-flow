@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   CreditCard, Truck, CheckCircle, AlertCircle,
-  Package, Zap, MapPin, ChevronRight, Gift,
+  Package, Zap, MapPin, ChevronRight, Gift, Tag, X,
 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -61,6 +61,14 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('RAZORPAY')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Coupon state
+  const [couponInput, setCouponInput] = useState('')
+  const [couponLoading, setCouponLoading] = useState(false)
+  const [couponError, setCouponError] = useState<string | null>(null)
+  const [appliedCoupon, setAppliedCoupon] = useState<{
+    code: string; type: 'PERCENT' | 'FLAT'; value: number; discountPaise: number
+  } | null>(null)
   const [addressErrors, setAddressErrors] = useState<Partial<Record<keyof ShippingAddress, string>>>({})
 
   const [address, setAddress] = useState<ShippingAddress>({
@@ -95,10 +103,70 @@ export function CheckoutPage() {
   )
 
   const shippingCost = cartTotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_COST
-  const grandTotal = cartTotal + shippingCost
+  const discountPaise = appliedCoupon?.discountPaise ?? 0
+  const grandTotal = Math.max(0, cartTotal + shippingCost - discountPaise)
   const amountToFreeShipping = FREE_SHIPPING_THRESHOLD - cartTotal
   const freeShippingProgress = Math.min(100, (cartTotal / FREE_SHIPPING_THRESHOLD) * 100)
   const totalItems = items.reduce((sum: number, i: any) => sum + i.qty, 0)
+
+  async function applyCoupon() {
+    const code = couponInput.trim().toUpperCase()
+    if (!code) return
+    setCouponLoading(true)
+    setCouponError(null)
+
+    const { data, error } = await supabase
+      .from('coupons')
+      .select('*')
+      .eq('code', code)
+      .eq('is_active', true)
+      .single()
+
+    setCouponLoading(false)
+
+    if (error || !data) {
+      setCouponError('Invalid or expired coupon code')
+      return
+    }
+
+    // Check expiry
+    if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      setCouponError('This coupon has expired')
+      return
+    }
+
+    // Check max uses
+    if (data.max_uses !== null && data.uses_count >= data.max_uses) {
+      setCouponError('This coupon has reached its usage limit')
+      return
+    }
+
+    // Check minimum order
+    if (cartTotal < data.min_order_paise) {
+      const minRupees = (data.min_order_paise / 100).toFixed(0)
+      setCouponError(`Minimum order of ₹${minRupees} required for this coupon`)
+      return
+    }
+
+    // Calculate discount
+    let discountPaise = 0
+    if (data.type === 'PERCENT') {
+      discountPaise = Math.round((cartTotal * data.value) / 100)
+    } else {
+      discountPaise = data.value
+    }
+    // Cap discount at cart total
+    discountPaise = Math.min(discountPaise, cartTotal)
+
+    setAppliedCoupon({ code: data.code, type: data.type, value: data.value, discountPaise })
+    setCouponInput('')
+  }
+
+  function removeCoupon() {
+    setAppliedCoupon(null)
+    setCouponError(null)
+    setCouponInput('')
+  }
 
   function validateAddress(): boolean {
     const errors: Partial<Record<keyof ShippingAddress, string>> = {}
@@ -143,7 +211,7 @@ export function CheckoutPage() {
       if (!rpcData.success) throw new Error(rpcData.error || 'Failed to create order')
       const orderId = rpcData.order_id!
 
-      await supabase.from('orders').update({ razorpay_order_id: razorpayOrderId, payment_status: 'PENDING', shipping_address: address }).eq('id', orderId)
+      await supabase.from('orders').update({ razorpay_order_id: razorpayOrderId, payment_status: 'PENDING', shipping_address: address, coupon_code: appliedCoupon?.code ?? null, discount_paise: discountPaise }).eq('id', orderId)
 
       const options = {
         key: keyId, amount: grandTotal, currency: 'INR', name: 'ShopFlow',
@@ -182,7 +250,7 @@ export function CheckoutPage() {
       const result = await api.checkout(paymentMethod as 'COD' | 'MOCK')
       if (!result.success) { setError(result.error || 'Checkout failed. Please try again.'); return }
       if (result.orderId) {
-        await supabase.from('orders').update({ shipping_address: address }).eq('id', result.orderId)
+        await supabase.from('orders').update({ shipping_address: address, coupon_code: appliedCoupon?.code ?? null, discount_paise: discountPaise }).eq('id', result.orderId)
       }
       await refetch()
       toast.success('Order placed successfully! 🎉')
@@ -267,6 +335,59 @@ export function CheckoutPage() {
                 {addressErrors.state && <p className="text-xs text-destructive">{addressErrors.state}</p>}
               </div>
             </div>
+          </div>
+
+
+          {/* Coupon Code */}
+          <div className="shopflow-card p-6">
+            <div className="flex items-center gap-2 mb-4">
+              <Tag className="w-5 h-5 text-primary" />
+              <h2 className="font-bold text-lg">Coupon Code</h2>
+            </div>
+
+            {appliedCoupon ? (
+              <div className="flex items-center justify-between p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+                <div className="flex items-center gap-2">
+                  <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" />
+                  <div>
+                    <p className="text-sm font-semibold text-emerald-700 font-mono">{appliedCoupon.code}</p>
+                    <p className="text-xs text-emerald-600">
+                      {appliedCoupon.type === 'PERCENT'
+                        ? `${appliedCoupon.value}% off applied`
+                        : `${formatINR(appliedCoupon.discountPaise)} off applied`}
+                    </p>
+                  </div>
+                </div>
+                <button onClick={removeCoupon} className="text-emerald-600 hover:text-emerald-800 transition-colors" title="Remove coupon">
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={couponInput}
+                  onChange={e => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null) }}
+                  onKeyDown={e => e.key === 'Enter' && applyCoupon()}
+                  placeholder="Enter coupon code"
+                  className="flex h-9 flex-1 rounded-md border border-input bg-background px-3 text-sm uppercase tracking-wider placeholder:normal-case placeholder:tracking-normal focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  maxLength={20}
+                />
+                <Button
+                  variant="outline"
+                  onClick={applyCoupon}
+                  disabled={!couponInput.trim() || couponLoading}
+                  className="shrink-0"
+                >
+                  {couponLoading ? <span className="w-4 h-4 border-2 border-border border-t-foreground rounded-full animate-spin" /> : 'Apply'}
+                </Button>
+              </div>
+            )}
+            {couponError && (
+              <p className="text-xs text-destructive mt-2 flex items-center gap-1">
+                <AlertCircle className="w-3 h-3 shrink-0" />{couponError}
+              </p>
+            )}
           </div>
 
           {/* Payment Method */}
@@ -363,6 +484,15 @@ export function CheckoutPage() {
                 </span>
               </div>
               {shippingCost > 0 && <p className="text-xs text-muted-foreground">Free shipping on orders above ₹499</p>}
+              {appliedCoupon && (
+                <div className="flex justify-between text-emerald-600">
+                  <span className="flex items-center gap-1">
+                    <Tag className="w-3 h-3" />
+                    {appliedCoupon.code}
+                  </span>
+                  <span className="font-medium">− {formatINR(discountPaise)}</span>
+                </div>
+              )}
             </div>
 
             <Separator />
