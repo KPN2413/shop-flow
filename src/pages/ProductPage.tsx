@@ -20,6 +20,7 @@ export function ProductPage() {
   const { addToCart } = useCart()
   const { user } = useAuth()
   const { isWishlisted, toggle } = useWishlist()
+  const { add: addToRecent } = useRecentlyViewed()
   const [product, setProduct] = useState<ProductWithCategory | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [qty, setQty] = useState(1)
