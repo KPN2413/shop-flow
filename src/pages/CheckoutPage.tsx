@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import {
   CreditCard, Truck, CheckCircle, AlertCircle,
-  Package, Zap, MapPin, ChevronRight, Gift, Tag, X,
+  Package, Zap, MapPin, ChevronRight, Gift, Tag, X, BookMarked,
 } from 'lucide-react'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -61,6 +61,10 @@ export function CheckoutPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('RAZORPAY')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Saved addresses
+  const [savedAddresses, setSavedAddresses] = useState<any[]>([])
+  const [showSavedAddresses, setShowSavedAddresses] = useState(false)
 
   // Coupon state
   const [couponInput, setCouponInput] = useState('')
@@ -277,6 +281,50 @@ export function CheckoutPage() {
 
         {/* LEFT */}
         <div className="space-y-6">
+
+          {/* Saved Addresses — quick fill */}
+          {savedAddresses.length > 0 && showSavedAddresses && (
+            <div className="shopflow-card p-5">
+              <div className="flex items-center gap-2 mb-3">
+                <BookMarked className="w-4 h-4 text-primary" />
+                <h2 className="font-semibold text-sm">Deliver to a saved address</h2>
+              </div>
+              <div className="space-y-2">
+                {savedAddresses.map((addr: any) => (
+                  <button
+                    key={addr.id}
+                    className="w-full text-left p-3 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-colors"
+                    onClick={() => {
+                      setAddress({
+                        full_name: addr.full_name,
+                        phone: addr.phone,
+                        line1: addr.line1,
+                        line2: addr.line2 || '',
+                        city: addr.city,
+                        state: addr.state,
+                        pincode: addr.pincode,
+                      })
+                      setAddressErrors({})
+                      setShowSavedAddresses(false)
+                    }}
+                  >
+                    <div className="flex items-center gap-2 mb-0.5">
+                      <span className="text-xs font-semibold bg-muted px-2 py-0.5 rounded-full">{addr.label}</span>
+                      {addr.is_default && <span className="text-xs text-primary font-medium">Default</span>}
+                    </div>
+                    <p className="text-sm font-medium">{addr.full_name}</p>
+                    <p className="text-xs text-muted-foreground">{addr.line1}{addr.line2 ? `, ${addr.line2}` : ''}, {addr.city}, {addr.state} — {addr.pincode}</p>
+                  </button>
+                ))}
+                <button
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors mt-1"
+                  onClick={() => setShowSavedAddresses(false)}
+                >
+                  + Enter a new address instead
+                </button>
+              </div>
+            </div>
+          )}
 
           {/* Address Form */}
           <div id="address-form" className="shopflow-card p-6">

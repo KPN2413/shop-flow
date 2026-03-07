@@ -33,6 +33,7 @@ import { ResetPasswordPage } from './pages/auth/ResetPasswordPage'
 // Account pages
 import { AccountPage } from './pages/account/AccountPage'
 import { OrdersPage } from './pages/account/OrdersPage'
+import { AddressesPage } from './pages/account/AddressesPage'
 import { OrderDetailPage } from './pages/account/OrderDetailPage'
 import { WishlistPage } from './pages/account/WishlistPage'
 
@@ -183,6 +184,12 @@ const wishlistRoute = createRoute({
   component: WishlistPage,
 })
 
+const addressesRoute = createRoute({
+  getParentRoute: () => storeLayoutRoute,
+  path: '/account/addresses',
+  component: AddressesPage,
+})
+
 const orderDetailRoute = createRoute({
   getParentRoute: () => storeLayoutRoute,
   path: '/account/orders/$orderId',
@@ -260,6 +267,7 @@ const routeTree = rootRoute.addChildren([
     accountRoute,
     ordersRoute,
     orderDetailRoute,
+    addressesRoute,
     wishlistRoute,
     healthRoute,
   ]),
