@@ -12,6 +12,8 @@ import { useWishlist } from '@/lib/wishlist-context'
 import { toast } from 'react-hot-toast'
 import type { ProductWithCategory } from '@/lib/database.types'
 import { ReviewSection } from '@/components/shared/ReviewSection'
+import { RecentlyViewedSection } from '@/components/shared/RecentlyViewedSection'
+import { useRecentlyViewed } from '@/hooks/useRecentlyViewed'
 
 export function ProductPage() {
   const { slug } = useParams({ strict: false }) as { slug: string }
@@ -54,6 +56,11 @@ export function ProductPage() {
         }
       })
   }, [product])
+
+  // Track this product as recently viewed
+  useEffect(() => {
+    if (product) addToRecent(product.id)
+  }, [product?.id])
 
   async function handleAddToCart() {
     if (!user) { toast.error('Please sign in to add items to cart'); return }
@@ -234,6 +241,9 @@ export function ProductPage() {
       </div>
       {/* Reviews */}
       <ReviewSection productId={product.id} />
+
+      {/* Recently viewed (other products) */}
+      <RecentlyViewedSection excludeId={product.id} title="Recently Viewed" />
     </main>
   )
 }

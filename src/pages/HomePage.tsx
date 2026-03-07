@@ -6,6 +6,7 @@ import { ProductCard } from '@/components/shared/ProductCard'
 import { supabase } from '@/lib/supabase'
 import type { ProductWithCategory } from '@/lib/database.types'
 import { useAuth } from '@/lib/auth-context'
+import { RecentlyViewedSection } from '@/components/shared/RecentlyViewedSection'
 
 export function HomePage() {
   const { user } = useAuth()
@@ -98,6 +99,9 @@ export function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Recently Viewed */}
+      <RecentlyViewedSection />
 
       {/* Featured Products */}
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
