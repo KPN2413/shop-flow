@@ -1,6 +1,5 @@
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ShoppingCart, User, Menu, X, Package, LayoutDashboard, LogOut, ChevronDown, Heart } from 'lucide-react'
-import { useState } from 'react'
+import { ShoppingCart, User, Package, LayoutDashboard, LogOut, ChevronDown, Heart } from 'lucide-react'
 import { Button } from '../ui/button'
 import {
   DropdownMenu,
@@ -19,8 +18,6 @@ export function Navbar() {
   const { itemCount } = useCart()
   const { itemCount: wishlistCount } = useWishlist()
   const navigate = useNavigate()
-  const [mobileOpen, setMobileOpen] = useState(false)
-
   async function handleSignOut() {
     await signOut()
     // navigate({ to: '/' })
@@ -152,60 +149,12 @@ export function Navbar() {
             )}
           </div>
 
-          {/* Mobile toggle */}
-          <div className="flex items-center gap-2 md:hidden">
+          {/* Mobile actions — BottomNav handles navigation */}
+          <div className="flex items-center gap-1 md:hidden">
             <SearchBar collapsible />
-            <Link to="/cart">
-              <Button variant="ghost" size="icon" className="relative">
-                <ShoppingCart className="h-5 w-5" />
-                {itemCount > 0 && (
-                  <span
-                    className="absolute -right-1 -top-1 h-4 w-4 flex items-center justify-center rounded-full p-0 text-[10px] font-semibold"
-                    style={{ backgroundColor: 'hsl(var(--secondary))', color: 'white' }}
-                  >
-                    {itemCount}
-                  </span>
-                )}
-              </Button>
-            </Link>
-            <Button variant="ghost" size="icon" onClick={() => setMobileOpen(!mobileOpen)}>
-              {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-            </Button>
           </div>
         </div>
 
-        {/* Mobile menu */}
-        {mobileOpen && (
-          <div className="border-t py-4 md:hidden">
-            <nav className="flex flex-col gap-2">
-              <Link to="/shop" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Shop</Link>
-              <Link to="/categories" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Categories</Link>
-              {user ? (
-                <>
-                  <Link to="/account" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>My Account</Link>
-                  <Link to="/account/wishlist" className="px-2 py-2 text-sm font-medium flex items-center gap-2" onClick={() => setMobileOpen(false)}>
-                    <Heart className={`h-4 w-4 ${wishlistCount > 0 ? 'fill-red-500 text-red-500' : ''}`} />
-                    My Wishlist {wishlistCount > 0 && `(${wishlistCount})`}
-                  </Link>
-                  {isAdmin && (
-                    <Link to="/admin" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Admin Dashboard</Link>
-                  )}
-                  <button
-                    className="px-2 py-2 text-left text-sm font-medium text-destructive"
-                    onClick={() => { handleSignOut(); setMobileOpen(false) }}
-                  >
-                    Sign Out
-                  </button>
-                </>
-              ) : (
-                <>
-                  <Link to="/login" className="px-2 py-2 text-sm font-medium" onClick={() => setMobileOpen(false)}>Sign In</Link>
-                  <Link to="/signup" className="px-2 py-2 text-sm font-medium text-secondary" onClick={() => setMobileOpen(false)}>Sign Up</Link>
-                </>
-              )}
-            </nav>
-          </div>
-        )}
       </div>
     </header>
   )
