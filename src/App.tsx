@@ -10,9 +10,9 @@ import { Toaster } from 'react-hot-toast'
 import { AuthProvider } from './lib/auth-context'
 import { CartProvider } from './lib/cart-context'
 import { WishlistProvider } from './lib/wishlist-context'
-import { Navbar } from '../mobile-ux/src/components/layout/Navbar'
+import { Navbar } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
-import { BottomNav } from '../mobile-ux/src/components/layout/BottomNav'
+import { BottomNav } from './components/layout/BottomNav'
 import { supabase } from './lib/supabase'
 
 // Public pages
