@@ -2,7 +2,7 @@ import React from 'react'
 import { Link, useLocation, useNavigate } from '@tanstack/react-router'
 import { 
   LayoutDashboard, Package, Tag, Warehouse, ShoppingBag, 
-  ArrowLeft, ChevronRight, Sparkles
+  ArrowLeft, ChevronRight, Sparkles, MessageCircle
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
 import { useEffect } from 'react'
@@ -15,6 +15,7 @@ const adminNav = [
   { href: '/admin/orders', label: 'Orders', icon: ShoppingBag },
   { href: '/admin/seed', label: 'Add Products', icon: Sparkles },
   { href: '/admin/coupons', label: 'Coupons', icon: Tag },
+  { href: '/admin/support', label: 'Support Chat', icon: MessageCircle },
 ]
 
 interface AdminLayoutProps {

@@ -13,6 +13,7 @@ import { WishlistProvider } from './lib/wishlist-context'
 import { Navbar } from './components/layout/Navbar'
 import { Footer } from './components/layout/Footer'
 import { BottomNav } from './components/layout/BottomNav'
+import { SupportWidget } from './components/shared/SupportWidget'
 import { supabase } from './lib/supabase'
 
 // Public pages
@@ -45,6 +46,7 @@ import { AdminInventory } from './pages/admin/AdminInventory'
 import { AdminOrders } from './pages/admin/AdminOrders'
 import { AdminSeedPage } from './pages/admin/AdminSeedPage'
 import { AdminCoupons } from './pages/admin/AdminCoupons'
+import { AdminSupport } from './pages/admin/AdminSupport'
 
 import { Analytics } from '@vercel/analytics/react';
 
@@ -58,6 +60,7 @@ function StoreLayout() {
       </div>
       <div className="hidden md:block"><Footer /></div>
       <BottomNav />
+      <SupportWidget />
     </div>
   )
 }
@@ -200,6 +203,12 @@ const healthRoute = createRoute({
   getParentRoute: () => storeLayoutRoute,
   path: '/health',
   component: HealthPage,
+})
+
+const adminSupportRoute = createRoute({
+  getParentRoute: () => adminRootRoute,
+  path: '/support',
+  component: AdminSupport,
 })
 
 // Admin routes — ALL protected by requireAdmin beforeLoad guard
